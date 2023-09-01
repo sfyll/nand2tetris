@@ -36,7 +36,7 @@ CHIP DMux8Way {
     And (a=eSelTemp, b=sel[2], out = eSel);
     DMux (in=in, sel=eSel, a=binAeSel, b=e);
     And (a=sel[0], b=notSel1, out = fSelTemp);
-    And (a=eSelTemp, b=sel[2], out = fSel);
+    And (a=fSelTemp, b=sel[2], out = fSel);
     DMux (in=in, sel=fSel, a=binAfSel, b=f);
     And (a=notSel0, b=sel[1], out = gSelTemp);
     And (a=gSelTemp, b=sel[2], out = gSel);
