@@ -17,4 +17,16 @@ CHIP PC {
 
     PARTS:
     // Put your code here:
+    Mux16 (a=outPast, b=false, sel=reset, out=outMux1);
+    Not(in=reset, out=notReset);
+    And(a=load, b=notReset, out=loadInSel);
+    Mux16 (a=outMux1, b=in, sel=loadInSel, out=outMux2);
+    Inc16 (in=outPast, out=outPastIncremented);
+    And (a=inc, b=load, out=incAndLoad);
+    Or (a=incAndLoad, b=load, out=loadSel);
+    Or (a=loadSel, b=reset, out=finalSel);
+    Mux16 (a=outPastIncremented, b=outMux2, sel=finalSel, out=outNext);
+    Or (a=inc, b=load, out=incOrLoad);
+    Or (a=incOrLoad, b=reset, out=finalOr);
+    Register (in=outNext, load=finalOr, out=outPast, out=out);
 }
