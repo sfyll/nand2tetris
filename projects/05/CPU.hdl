@@ -40,4 +40,58 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    Mux16 (a=instruction, b=ALUOutput, sel=instruction[15], out=mux1OutInstruction);
+    Not (in=instruction[15], out=notbit15);
+	Mux (a=notbit15, b=instruction[5], sel=instruction[15], out=aregload);
+    //Register A
+    ARegister (in=mux1OutInstruction, load=aregload, out=Aregister, out[0..14]=addressM);
+    
+    //ALU Input
+    Mux16 (a=Aregister, b=inM, sel=instruction[12], out=ALUInput);
+    
+    //Register D
+    And(a=instruction[4], b=instruction[15], out=dregload);
+    DRegister (in=ALUOutput, load=dregload, out=Dregister);
+    
+    ALU (x=Dregister, y=ALUInput,
+    zx=instruction[11], nx=instruction[10], 
+	zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6],
+    out=ALUOutput, out= outM,  zr=zr, ng=ng);
+
+    //WriteM output
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    ///jump bits: 000, no jump; 111: unconditional jump, xxx:conditional jump
+    //JUMP LOGIC
+    Not(in=ng, out=greaterOrEqualToZero);
+    And(a=ng, b=zr, out=lowerOrEqualToZero);
+    And (a=notZero, b=greaterOrEqualToZero, out=strictlyGreaterThan0);
+    Not(in=zr, out=notZero);
+    //JGT
+    And(a=strictlyGreaterThan0, b=instruction[0], out=JGT);
+    //JEQ 
+    And(a=zr, b=instruction[1], out=JEQ);
+    //Temp And to test for JGE
+    And(a=instruction[0], b=instruction[1], out=instruction1and0);
+    And(a=instruction1and0, b=greaterOrEqualToZero, out=JGE);
+    //JLT
+    And(a=instruction[2], b=ng, out=JLT);
+    //JNE
+    And(a=instruction[0], b=instruction[2], out=instruction2and0);
+    And(a=instruction2and0, b=notZero, out=JNE);
+    //JLE
+    And(a=instruction[2], b=instruction[1], out=instruction2and1);
+    And(a=instruction2and1, b=ng, out= JLE);
+    //Unconditional jump
+    And(a=instruction2and1, b=instruction1and0, out=unconditionalJump);
+
+    //Test for any jump, or no jump
+    Or (a=JGT, b=JEQ, out=test1);
+    Or (a=test1, b=JEQ, out=test2);
+    Or (a=test2, b=JLT, out=test3);
+    Or (a=test3, b=JNE, out=test4);
+    Or (a=test4, b=JLE, out=test5);
+    Or (a=test5, b=unconditionalJump, out=test6);
+    And(a=instruction[15], b=test6, out=isJump);
+    PC (in=Aregister, load=isJump, inc=true, reset=reset, out[0..14]=pc); 
 }

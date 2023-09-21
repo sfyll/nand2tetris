@@ -28,4 +28,14 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+    // if MBS is on, it means we're above 0x400
+    DMux (in=load, sel=address[14], a=ram, b=inputDevice);
+    RAM16K(in=in, load=ram, address=address[0..13], out=outRam);
+    DMux (in=inputDevice, sel=address[13], 
+    a=screen, 
+    b=keyboard);
+    Screen (in=in, load=screen , address=address[0..12], out=outScreen);
+    Keyboard (out=outKeyboard);
+    Mux16 (a=outScreen, b=outKeyboard, sel=address[13], out=outDevice);
+    Mux16 (a=outRam, b=outDevice, sel=address[14], out=out);
 }
