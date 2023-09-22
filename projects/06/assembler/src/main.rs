@@ -25,11 +25,9 @@ fn main() {
 
     println!("Parsing {}", file_path);
 
-    let assembler = Assembler::new(file_path).unwrap();
+    let mut assembler = Assembler::new(file_path).unwrap();
 
     let parsed_vector = assembler.parse();
-
-    println!("Parsed File {:?}", parsed_vector);
 
     assembler.write_file(parsed_vector).unwrap();
 }
