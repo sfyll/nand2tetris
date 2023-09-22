@@ -1,4 +1,4 @@
-Below my notes ! Careful not to get spoiled with some PSET related notes.
+Below my notes ! Careful not to get spoiled with some PSET content.
 
 Enjoy!  
 
