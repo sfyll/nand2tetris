@@ -16,7 +16,7 @@ char ***loadFile(const char *filePath, int *lineCount) {
     *lineCount = 0;
 
     while (fgets(buffer, sizeof(buffer), file) != NULL) {
-        // Resize lines to accommodate the new line
+        // Resize lines to accommodate the new lne
         lines = realloc(lines, (*lineCount + 1) * sizeof(char **));
         lines[*lineCount] = NULL;  // Initialize to NULL for later use with realloc
 
