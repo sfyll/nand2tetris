@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "hack_ram.h"
 
 typedef enum {
     C_INSTRUCTION,
@@ -103,8 +104,7 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
       currentInstr.arg2 = 0;
     } else if ((currentInstr.commandType == C_PUSH) ||
                (currentInstr.commandType == C_POP)) {
-      currentInstr.arg1 = commandType.command;
-          strtok(NULL, " \n"); // Get the next token for arg1
+      currentInstr.arg1 = strtok(NULL, " \n");
       currentInstr.arg2 = atoi(strtok(
           NULL, " \n")); // Get the next token for arg2 and convert to int
     }
@@ -118,6 +118,33 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
   return instructions;
 }
 
+void executeInstructions(VMInstruction *instructions, int lineCount, HackMemory *memory) {
+    for (int i = 0; i < lineCount; i++) {
+        VMInstruction instr = instructions[i];
+        
+        switch (instr.commandType) {
+            case C_PUSH:
+                pushToStack(memory, instr.arg1, instr.arg2);
+                break;
+
+            case C_POP:
+                popFromStack(memory, instr.arg1);
+                break;
+
+            case C_INSTRUCTION:
+                if (strcmp(instr.arg1, "add") == 0) {
+                    add(memory);
+                }
+                // You can add more cases here for sub, neg, etc.
+                break;
+
+            default:
+                printf("Unknown instruction type.\n");
+                break;
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     printf("Usage: %s <file_path>\n", argv[0]);
@@ -128,5 +155,10 @@ int main(int argc, char *argv[]) {
   VMInstruction *instructions = loadFile(argv[1], &lineCount);
 
   printInstructions(instructions, lineCount);
+
+  HackMemory memory = initHackMemory();
+
+  executeInstructions(instructions, lineCount, &memory);
   return 0;
 }
+
