@@ -1,73 +1,13 @@
+#include "hack_ram.h"
+#include "instructions.h"
+#include "template.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hack_ram.h"
-
-typedef enum {
-    C_INSTRUCTION,
-    C_POP,
-    C_PUSH,
-    INVALID_TYPE
-} CommandType;
-
-typedef struct {
-  CommandType commandType;
-  char *arg1;
-  int arg2;
-} VMInstruction;
-
-typedef struct {
-  char *command;
-  CommandType type;
-} CommandMap;
-
-CommandMap commands[] = {
-    {"add", C_INSTRUCTION}, {"sub", C_INSTRUCTION}, {"neg", C_INSTRUCTION},
-    {"eq", C_INSTRUCTION},  {"gt", C_INSTRUCTION},  {"lt", C_INSTRUCTION},
-    {"and", C_INSTRUCTION}, {"or", C_INSTRUCTION},  {"not", C_INSTRUCTION},
-    {"push", C_PUSH},       {"pop", C_POP},
-};
-
-//The below is for easy printing and debugging
-const char *CommandTypeStrings[] = {
-    "C_INSTRUCTION",
-    "C_POP",
-    "C_PUSH",
-    "INVALID_TYPE"
-};
-
-//Sentinel values from not yet supported conmmands
-static const CommandMap INVALID_COMMAND = {NULL, INVALID_TYPE};
-
-
-CommandMap getCommandType(const char *command) {
-  for (int i = 0; i < sizeof(commands) / sizeof(CommandMap); i++) {
-    if (strcmp(commands[i].command, command) == 0) {
-      return commands[i];
-    }
-  }
-  return INVALID_COMMAND; // Not found
-}
-
-void printInstructions(VMInstruction *instructions, int lineCount) {
-    for (int i = 0; i < lineCount; i++) {
-        printf("Instruction %d:\n", i + 1);
-        printf("\tCommand Type: %s\n", CommandTypeStrings[instructions[i].commandType]);
-        
-        if (instructions[i].commandType == C_INSTRUCTION) {
-            printf("\tArg1: %s\n", instructions[i].arg1 ? instructions[i].arg1 : "N/A");
-            printf("\tArg2: N/A\n");
-        } else if ((instructions[i].commandType == C_PUSH) ||
-            (instructions[i].commandType == C_POP)) {
-            printf("\tArg1: %s\n", instructions[i].arg1 ? instructions[i].arg1 : "N/A");
-            printf("\tArg2: %d\n", instructions[i].arg2);
-        }
-    }
-}
 
 #define MAX_LINE_SIZE 10000
 
-//We returns instructions, a pointer to an array of VMInstruction
+// We returns instructions, a pointer to an array of VMInstruction
 VMInstruction *loadFile(const char *filePath, int *lineCount) {
   FILE *file = fopen(filePath, "r");
   if (file == NULL) {
@@ -117,32 +57,89 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
   fclose(file);
   return instructions;
 }
+void executeInstructions(VMInstruction *instructions, int lineCount,
+                         HackMemory *memory, FILE *outputFile) {
+  for (int i = 0; i < lineCount; i++) {
+    VMInstruction instr = instructions[i];
+    const char *assembly_code = getAssemblyTemplate(&instr);
 
-void executeInstructions(VMInstruction *instructions, int lineCount, HackMemory *memory) {
-    for (int i = 0; i < lineCount; i++) {
-        VMInstruction instr = instructions[i];
-        
-        switch (instr.commandType) {
-            case C_PUSH:
-                pushToStack(memory, instr.arg1, instr.arg2);
-                break;
+    switch (instr.commandType) {
+    case C_PUSH:
+      pushToStack(memory, instr.arg1, instr.arg2);
+      writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
+      break;
 
-            case C_POP:
-                popFromStack(memory, instr.arg1);
-                break;
+    case C_POP:
+      popFromStack(memory, instr.arg1);
+      writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
+      break;
 
-            case C_INSTRUCTION:
-                if (strcmp(instr.arg1, "add") == 0) {
-                    add(memory);
-                }
-                // You can add more cases here for sub, neg, etc.
-                break;
+    case C_INSTRUCTION:
+      if (strcmp(instr.arg1, "add") == 0) {
+        short result = hack_add(memory);
+        writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
+      } else if (strcmp(instr.arg1, "sub") == 0) {
+        short result = hack_sub(memory);
+        writeSubAssembly(assembly_code, outputFile);
+      } else if (strcmp(instr.arg1, "neg") == 0) {
+        short result = hack_neg(memory);
+        writeNegAssembly(assembly_code, outputFile);
+      } else if (strcmp(instr.arg1, "eq") == 0) {
+        short result = hack_eq(memory);
+        short value_to_pass = (short)i;
+        writeEqAssembly(assembly_code, &value_to_pass, outputFile);
+      } else if (strcmp(instr.arg1, "gt") == 0) {
+        short result = hack_gt(memory);
+        short value_to_pass = (short)i;
+        writeGtAssembly(assembly_code, &value_to_pass, outputFile);
+      } else if (strcmp(instr.arg1, "lt") == 0) {
+        short result = hack_lt(memory);
+        short value_to_pass = (short)i;
+        writeLtAssembly(assembly_code, &value_to_pass, outputFile);
+      } else if (strcmp(instr.arg1, "and") == 0) {
+        short result = hack_and(memory);
+        writeAndAssembly(assembly_code, outputFile);
+      } else if (strcmp(instr.arg1, "or") == 0) {
+        short result = hack_or(memory);
+        writeOrAssembly(assembly_code, outputFile);
+      } else if (strcmp(instr.arg1, "not") == 0) {
+        short result = hack_not(memory);
+        writeNotAssembly(assembly_code, outputFile);
+      }
+      break;
 
-            default:
-                printf("Unknown instruction type.\n");
-                break;
-        }
+    default:
+      printf("Unknown instruction type.\n");
+      break;
     }
+  }
+  writeEndOfFileAssembly(outputFile);
+}
+
+FILE *openOutputFile(const char *inputFile) {
+  // Create the output filename by replacing .vm with .asm
+  char outputFile[256]; // Ensure enough space
+  strncpy(outputFile, inputFile, sizeof(outputFile) - 1);
+  char *extension = strstr(outputFile, ".vm");
+  if (extension) {
+    strcpy(extension, ".asm");
+  } else {
+    printf("Error, Wrong File Extension, should be .vm: %s\n", inputFile);
+    return NULL;
+  }
+
+  // Open the file for writing
+  FILE *file = fopen(outputFile, "w");
+  if (!file) {
+    printf("Error: Could not create output file %s\n", outputFile);
+  }
+  return file;
+}
+
+void closeFile(FILE *file) {
+  if (file) {
+    fclose(file);
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -156,9 +153,24 @@ int main(int argc, char *argv[]) {
 
   printInstructions(instructions, lineCount);
 
+  // Use the utility function to open the output file
+  FILE *file = openOutputFile(argv[1]);
+  if (!file) {
+    return 1; // exit if error occurred
+  }
+
+  // Create memory component
   HackMemory memory = initHackMemory();
 
-  executeInstructions(instructions, lineCount, &memory);
+  // Initialize assembly templates
+  initializeTemplates();
+  printf("template: %s\n", PUSH_TEMPLATE);
+  // Populate Instruction mapper to assembly template
+  initializeAssemblyMappings();
+
+  executeInstructions(instructions, lineCount, &memory, file);
+
+  closeFile(file);
+
   return 0;
 }
-
