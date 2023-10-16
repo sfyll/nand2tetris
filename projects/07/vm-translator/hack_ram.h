@@ -32,7 +32,15 @@ typedef struct {
 HackMemory initHackMemory();
 HackMemoryStatus pushToStack(HackMemory *memory, const char *segment, short value);
 short popFromStack(HackMemory *memory, const char *segment);
-short add(HackMemory *memory);
+short hack_add(HackMemory *memory);
+short hack_sub(HackMemory *memory);
+short hack_neg(HackMemory *memory);
+short hack_eq(HackMemory *memory);
+short hack_lt(HackMemory *memory);
+short hack_gt(HackMemory *memory);
+short hack_and(HackMemory *memory);
+short hack_or(HackMemory *memory);
+short hack_not(HackMemory *memory);
 
 #endif // HACK_RAM_H
 

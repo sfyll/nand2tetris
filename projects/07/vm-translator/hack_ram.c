@@ -55,25 +55,25 @@ unsigned short *getSegmentBasePointer(HackMemory *memory, const char *segment) {
   }
 }
 
-void updatePointer(unsigned short **pointer, int operation) {
-    if(operation == 1) {
-        (*pointer)++;
-    } else if(operation == -1) {
-        (*pointer)--;
-    }
+void updatePointer(unsigned short *pointer, int operation) {
+  if (operation == 1) {
+    (*pointer)++;
+  } else if (operation == -1) {
+    (*pointer)--;
+  }
 }
 
-HackMemoryStatus pushToStack(HackMemory *memory, const char *segment, short value) {
+HackMemoryStatus pushToStack(HackMemory *memory, const char *segment,
+                             short value) {
   unsigned short *basePointer = getSegmentBasePointer(memory, segment);
-  printf("Updating the pointer %d to value %d\n", memory->RAM[*basePointer], value);
   if (!basePointer) {
     fprintf(stderr, "Error: Invalid memory segment.\n");
     return HACK_MEMORY_ERROR;
   }
-  if (*basePointer >= 0 && *basePointer<= STACK_END) {
+  if (*basePointer >= 0 && *basePointer <= STACK_END) {
     memory->RAM[*basePointer] = value;
-    updatePointer(&basePointer, 1);
     printf("Updated the pointer %d to value %d\n", *basePointer, value);
+    updatePointer(basePointer, 1);
     return HACK_MEMORY_SUCCESS;
   } else {
     fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
@@ -83,27 +83,135 @@ HackMemoryStatus pushToStack(HackMemory *memory, const char *segment, short valu
 
 short popFromStack(HackMemory *memory, const char *segment) {
   unsigned short *basePointer = getSegmentBasePointer(memory, segment);
-  printf("Popping the value %d at pointer %d\n", memory->RAM[*basePointer], *basePointer);
   if (!basePointer) {
     fprintf(stderr, "Error: Invalid memory segment.\n");
     return HACK_MEMORY_ERROR;
   }
   if (*basePointer > 0 && *basePointer <= STACK_END) {
-    updatePointer(&basePointer, -1);
+    updatePointer(basePointer, -1);
+    printf("Popped the value %d at pointer %d\n", memory->RAM[*basePointer],
+           *basePointer);
     return memory->RAM[*basePointer];
-    printf("Popped the value %d at pointer %d\n", memory->RAM[*basePointer], *basePointer);
   } else {
     fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *basePointer);
     return 0;
   }
 }
 
-short add(HackMemory *memory) {
+void popTopTwoFromStack(HackMemory *memory, short *x, short *y) {
+  *y = popFromStack(memory, "stack");
+  *x = popFromStack(memory, "stack");
+}
+
+short hack_add(HackMemory *memory) {
   if (*memory->SP >= STACK_START) {
-    short x = popFromStack(memory, "stack");
-    short y = popFromStack(memory, "stack");
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
     short added_value = x + y;
     pushToStack(memory, "stack", added_value);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_sub(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
+    short result = x - y;
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_neg(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x = popFromStack(memory, "stack");
+    short result = -x;
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_eq(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
+    short result = (x == y) ? -1 : 0;
+
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_lt(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
+    short result = (x < y) ? -1 : 0;
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_gt(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
+    short result = (x > y) ? -1 : 0;
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_and(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
+    short result = x & y;
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_or(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x, y;
+    popTopTwoFromStack(memory, &x, &y);
+    short result = x | y;
+    pushToStack(memory, "stack", result);
+    return memory->RAM[*memory->SP];
+  } else {
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    return 0;
+  }
+}
+
+short hack_not(HackMemory *memory) {
+  if (*memory->SP >= STACK_START) {
+    short x = popFromStack(memory, "stack");
+    short result = ~x;
+    pushToStack(memory, "stack", result);
     return memory->RAM[*memory->SP];
   } else {
     fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
