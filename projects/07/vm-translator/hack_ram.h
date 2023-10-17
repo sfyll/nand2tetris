@@ -30,8 +30,9 @@ typedef struct {
 
 // Function prototypes
 HackMemory initHackMemory();
+void printHackMemory(HackMemory memory);
 HackMemoryStatus pushToStack(HackMemory *memory, const char *segment, short value);
-short popFromStack(HackMemory *memory, const char *segment);
+short popFromStack(HackMemory *memory, const char *segment, unsigned short pointer_index);
 short hack_add(HackMemory *memory);
 short hack_sub(HackMemory *memory);
 short hack_neg(HackMemory *memory);
