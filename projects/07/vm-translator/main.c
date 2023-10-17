@@ -44,7 +44,8 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
       currentInstr.arg2 = 0;
     } else if ((currentInstr.commandType == C_PUSH) ||
                (currentInstr.commandType == C_POP)) {
-      currentInstr.arg1 = strtok(NULL, " \n");
+      // we need to make copies cause strtok modifies the token inplace
+      currentInstr.arg1 = strdup(strtok(NULL, " \n"));
       currentInstr.arg2 = atoi(strtok(
           NULL, " \n")); // Get the next token for arg2 and convert to int
     }
@@ -70,7 +71,7 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
       break;
 
     case C_POP:
-      popFromStack(memory, instr.arg1);
+      popFromStack(memory, instr.arg1, instr.arg2);
       writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
       break;
 
@@ -112,6 +113,8 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
       printf("Unknown instruction type.\n");
       break;
     }
+    printf("%d, %s, %d\n", instr.commandType, instr.arg1, instr.arg2);
+    printHackMemory(*memory);
   }
   writeEndOfFileAssembly(outputFile);
 }
