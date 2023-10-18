@@ -1,7 +1,7 @@
 #include "template.h"
+#include <stdlib.h>
+#include <string.h>
 
-const char *PUSH_TEMPLATE;
-const char *POP_TEMPLATE;
 const char *ADD_TEMPLATE;
 const char *SUB_TEMPLATE;
 const char *NEG_TEMPLATE;
@@ -12,23 +12,17 @@ const char *AND_TEMPLATE;
 const char *OR_TEMPLATE;
 const char *NOT_TEMPLATE;
 const char *FILE_END;
+const char *POP_MAIN;
+const char *POP_POINTER;
+const char *POP_STATIC;
+const char *POP_TEMP;
+const char *PUSH_MAIN;
+const char *PUSH_CONSTANT;
+const char *PUSH_POINTER;
+const char *PUSH_STATIC;
+const char *PUSH_TEMP;
 
 void initializeTemplates(void) {
-  PUSH_TEMPLATE = "@%d\n"
-                  "D=A\n"
-                  "@SP\n"
-                  "A=M\n"
-                  "M=D\n"
-                  "@SP\n"
-                  "M=M+1\n";
-
-  POP_TEMPLATE = "@%d\n"
-                 "A=M-1\n"
-                 "D=A\n"
-                 "@SP\n"
-                 "A=M\n"
-                 "M=D\n";
-
   ADD_TEMPLATE = "@SP\n"
                  "M=M-1\n"
                  "A=M\n"
@@ -140,13 +134,149 @@ void initializeTemplates(void) {
   FILE_END = "(END)\n"
              "@END\n"
              "0;JMP\n";
+
+  PUSH_MAIN = "@%d\n"
+              "D=A\n"
+              "@%s\n"
+              "D=D+M\n"
+              "@addr\n"
+              "M=D\n"
+              "A=M\n"
+              "D=M\n"
+              "@SP\n"
+              "A=M\n"
+              "M=D\n"
+              "@SP\n"
+              "M=M+1\n";
+
+  PUSH_CONSTANT = "@%d\n"
+                  "D=A\n"
+                  "@SP\n"
+                  "A=M\n"
+                  "M=D\n"
+                  "@SP\n"
+                  "M=M+1\n";
+
+  PUSH_TEMP = "@%d\n"
+              "D=A\n"
+              "@5\n"
+              "D=D+A\n"
+              "A=D\n"
+              "D=M\n"
+              "@SP\n"
+              "A=M\n"
+              "M=D\n"
+              "@SP\n"
+              "M=M+1\n";
+
+  PUSH_POINTER = "@%s\n"
+                 "D=M\n"
+                 "@SP\n"
+                 "A=M\n"
+                 "M=D\n"
+                 "@SP\n"
+                 "M=M+1\n";
+
+  PUSH_STATIC = "@%s.%s\n"
+                "D=M\n"
+                "@SP\n"
+                "A=M\n"
+                "M=D\n"
+                "@SP\n"
+                "M=M+1\n";
+
+  POP_MAIN = "@%d\n"
+             "D=A\n"
+             "@%s\n"
+             "D=D+M\n"
+             "@addr\n"
+             "M=D\n"
+             "@SP\n"
+             "M=M-1\n"
+             "A=M\n"
+             "D=M\n"
+             "@addr\n"
+             "A=M\n"
+             "M=D\n";
+
+  POP_TEMP = "@%d\n"
+             "D=A\n"
+             "@5\n"
+             "D=D+A\n"
+             "@addr\n"
+             "M=D\n"
+             "@SP\n"
+             "M=M-1\n"
+             "A=M\n"
+             "D=M\n"
+             "@addr\n"
+             "A=M\n"
+             "M=D\n";
+
+  POP_POINTER = "@SP\n"
+                "M=M-1\n"
+                "A=M\n"
+                "D=M\n"
+                "@%s\n"
+                "M=D\n";
+
+  POP_STATIC = "@SP\n"
+               "M=M-1\n"
+               "A=M\n"
+               "D=M\n"
+               "@%s.%d\n"
+               "M=D\n";
 }
 
-void writePushAndPopAssembly(const char *assembly_template, short *value,
-                             FILE *outputFile) {
-  static char assembly[256]; // Static so it persists after function return
-  snprintf(assembly, sizeof(assembly), assembly_template, *value);
-  fprintf(outputFile, "%s\n", assembly); // Write to the output file
+char *segment_mapping(char *segment) {
+  if (strcmp(segment, "local") == 0)
+    return "LCL";
+  if (strcmp(segment, "argument") == 0)
+    return "ARG";
+  if (strcmp(segment, "this") == 0)
+    return "THIS";
+  if (strcmp(segment, "that") == 0)
+    return "THAT";
+  return "UNKNOWN";
+}
+
+void writePushAssembly(const char *assembly_template, char *segment,
+                       short *address, FILE *outputFile) {
+  static char assembly[256];
+  printf("%s\n", assembly_template);
+  if (strcmp(segment, "local") == 0 || strcmp(segment, "argument") == 0 ||
+      strcmp(segment, "this") == 0 || strcmp(segment, "that") == 0) {
+    snprintf(assembly, sizeof(assembly), assembly_template, *address,
+             segment_mapping(segment));
+  } else if (strcmp(segment, "constant") == 0 || strcmp(segment, "temp") == 0) {
+    snprintf(assembly, sizeof(assembly), assembly_template, *address);
+  } else if (strcmp(segment, "pointer") == 0) {
+    char *memory_idx = (address == 0) ? "THIS" : "THAT";
+    snprintf(assembly, sizeof(assembly), assembly_template, memory_idx);
+  }
+  printf("assembly: \n %s \n", assembly);
+  fprintf(outputFile, "%s\n", assembly_template);
+}
+
+void writePopAssembly(const char *assembly_template, char *segment,
+                      short *address, FILE *outputFile) {
+  static char assembly[256];
+  printf("%s\n", assembly_template);
+  if (strcmp(segment, "local") == 0 || strcmp(segment, "argument") == 0 ||
+      strcmp(segment, "this") == 0 || strcmp(segment, "that") == 0) {
+    snprintf(assembly, sizeof(assembly), assembly_template, *address,
+             segment_mapping(segment));
+  } else if (strcmp(segment, "temp") == 0) {
+    snprintf(assembly, sizeof(assembly), assembly_template, *address);
+  } else if (strcmp(segment, "pointer") == 0) {
+    char *memory_idx = (address == 0) ? "THIS" : "THAT";
+    snprintf(assembly, sizeof(assembly), assembly_template, memory_idx);
+  }
+  fprintf(outputFile, "%s\n", assembly);
+}
+
+void writeAddAssembly(const char *assembly_template, FILE *outputFile) {
+  fprintf(outputFile, "%s\n", assembly_template); // Write to the output file
 }
 
 void writeSubAssembly(const char *assembly_template, FILE *outputFile) {

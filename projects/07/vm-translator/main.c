@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define MAX_LINE_SIZE 10000
 
@@ -62,23 +63,26 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
                          HackMemory *memory, FILE *outputFile) {
   for (int i = 0; i < lineCount; i++) {
     VMInstruction instr = instructions[i];
+
     const char *assembly_code = getAssemblyTemplate(&instr);
 
     switch (instr.commandType) {
     case C_PUSH:
       pushToStack(memory, instr.arg1, instr.arg2);
-      writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
+      printf("PRE FUNC %s %d\n", instr.arg1, instr.arg2);
+      writeAddAssembly(assembly_code, outputFile);
+      printf("%d\n", lineCount);
       break;
 
     case C_POP:
       popFromStack(memory, instr.arg1, instr.arg2);
-      writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
+      writePopAssembly(assembly_code, instr.arg1, &instr.arg2, outputFile);
       break;
 
     case C_INSTRUCTION:
       if (strcmp(instr.arg1, "add") == 0) {
         short result = hack_add(memory);
-        writePushAndPopAssembly(assembly_code, &instr.arg2, outputFile);
+        writeAddAssembly(assembly_code, outputFile);
       } else if (strcmp(instr.arg1, "sub") == 0) {
         short result = hack_sub(memory);
         writeSubAssembly(assembly_code, outputFile);
@@ -123,6 +127,7 @@ FILE *openOutputFile(const char *inputFile) {
   // Create the output filename by replacing .vm with .asm
   char outputFile[256]; // Ensure enough space
   strncpy(outputFile, inputFile, sizeof(outputFile) - 1);
+
   char *extension = strstr(outputFile, ".vm");
   if (extension) {
     strcpy(extension, ".asm");
@@ -136,6 +141,11 @@ FILE *openOutputFile(const char *inputFile) {
   if (!file) {
     printf("Error: Could not create output file %s\n", outputFile);
   }
+  //check for write access
+  if (access(outputFile, W_OK) == -1) {
+  printf("No write access to output file.\n");
+}
+
   return file;
 }
 
@@ -161,16 +171,17 @@ int main(int argc, char *argv[]) {
   if (!file) {
     return 1; // exit if error occurred
   }
-
+  printf("%d\n", lineCount);
   // Create memory component
   HackMemory memory = initHackMemory();
 
+  printf("%d\n", lineCount);
   // Initialize assembly templates
   initializeTemplates();
-  printf("template: %s\n", PUSH_TEMPLATE);
   // Populate Instruction mapper to assembly template
   initializeAssemblyMappings();
 
+  printf("%d\n", lineCount);
   executeInstructions(instructions, lineCount, &memory, file);
 
   closeFile(file);

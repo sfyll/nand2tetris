@@ -12,15 +12,16 @@ typedef struct {
       RAM[RAM_SIZE]; // This can represent the entire RAM. Each entry is 16-bit.
 
   // You could also explicitly store pointers or indices to special addresses:
-  unsigned short *SP;   // Stack Pointer
-  unsigned short *LCL;  // Local segment
-  unsigned short *ARG;  // Argument segment
-  unsigned short *THIS; // this segment
-  unsigned short *THAT; // that segment
-  unsigned short *TEMP; // TEMP segment starts at address 5 and goes till 12
-  unsigned short *R13;  // Variable Register
-  unsigned short *R14;  // Variable Register
-  unsigned short *R15;  // Variable Register
+  unsigned short *SP;     // Stack Pointer
+  unsigned short *LCL;    // Local segment
+  unsigned short *ARG;    // Argument segment
+  unsigned short *THIS;   // this segment
+  unsigned short *THAT;   // that segment
+  unsigned short *TEMP;   // TEMP segment starts at address 5 and goes till 12
+  unsigned short *R13;    // Variable Register
+  unsigned short *R14;    // Variable Register
+  unsigned short *R15;    // Variable Register
+  unsigned short *STATIC; // STATIC segment
 } HackMemory;
 
 HackMemory initHackMemory() {
@@ -28,12 +29,13 @@ HackMemory initHackMemory() {
   memory.SP = (unsigned short *)&memory.RAM[0];
   memory.LCL = (unsigned short *)&memory.RAM[1];
   memory.ARG = (unsigned short *)&memory.RAM[2];
-  memory.THIS =(unsigned short *)&memory.RAM[3];
-  memory.THAT =(unsigned short *)&memory.RAM[4];
-  memory.TEMP =(unsigned short *)&memory.RAM[5];
-  memory.R13 =(unsigned short *)&memory.RAM[13];
-  memory.R14 =(unsigned short *)&memory.RAM[14];
-  memory.R15 =(unsigned short *)&memory.RAM[15];
+  memory.THIS = (unsigned short *)&memory.RAM[3];
+  memory.THAT = (unsigned short *)&memory.RAM[4];
+  memory.TEMP = (unsigned short *)&memory.RAM[5];
+  memory.R13 = (unsigned short *)&memory.RAM[13];
+  memory.R14 = (unsigned short *)&memory.RAM[14];
+  memory.R15 = (unsigned short *)&memory.RAM[15];
+  memory.STATIC = (unsigned short *)&memory.STATIC[16];
 
   *memory.SP = STACK_START;
   *memory.LCL = 1015;
@@ -50,16 +52,19 @@ void printHackMemory(HackMemory memory) {
   }
   printf("\n");
 
-  unsigned short *segments[] = {memory.LCL, memory.ARG, memory.THIS,
-                                memory.THAT, memory.TEMP};
-  const char *segmentNames[] = {"LCL", "ARG", "THIS", "THAT", "TEMP"};
+  unsigned short *segments[] = {memory.LCL,  memory.ARG,  memory.THIS,
+                                memory.THAT, memory.TEMP, memory.STATIC};
+  const char *segmentNames[] = {"LCL", "ARG", "THIS", "THAT", "TEMP", "STATIC"};
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 6; i++) {
     printf("%s: ", segmentNames[i]);
     for (int j = 0; j < 9; j++) {
       if (strcmp(segmentNames[i], "TEMP") == 0) {
         // temp allocated in place
-        printf("%d ", memory.RAM[5+ j]);
+        printf("%d ", memory.RAM[5 + j]);
+      } else if (strcmp(segmentNames[i], "STATIC") == 0) {
+        // temp allocated in place
+        printf("%d ", memory.RAM[16 + j]);
       } else {
         printf("%d ", memory.RAM[*segments[i] + j]);
       }
@@ -80,9 +85,13 @@ unsigned short *getSegmentBasePointer(HackMemory *memory, const char *segment,
   } else if (strcmp(segment, "that") == 0) {
     basePointer = memory->THAT;
   } else if (strcmp(segment, "temp") == 0) {
-      //hacky way, TEMP starts at RAM[5]
-      static unsigned short constant_five = 5; 
-      basePointer = &constant_five;
+    // hacky way, TEMP starts at RAM[5]
+    static unsigned short constant_five = 5;
+    basePointer = &constant_five;
+  } else if (strcmp(segment, "static") == 0) {
+    // hacky way, STATIC starts at RAM[16]
+    static unsigned short constant_sixteen = 16;
+    basePointer = &constant_sixteen;
   } else if (strcmp(segment, "pointer") == 0) {
     if (pointer_value == 0) {
       basePointer = memory->THIS;
@@ -182,7 +191,6 @@ short hack_sub(HackMemory *memory) {
     short x, y;
     popTopTwoFromStack(memory, &x, &y);
     short result = x - y;
-    printf("result: %d\n", result);
     pushToStack(memory, "stack", result);
     return memory->RAM[*memory->SP];
   } else {
