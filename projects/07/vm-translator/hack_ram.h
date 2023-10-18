@@ -26,6 +26,8 @@ typedef struct {
     unsigned short *R13;  // Variable Register
     unsigned short *R14;  // Variable Register
     unsigned short *R15;  // Variable Register
+    unsigned short *STATIC;  // Variable Register
+    unsigned short STATIC_OFFSET; // Keep track of static pointer since the stack is in-place
 } HackMemory;
 
 // Function prototypes

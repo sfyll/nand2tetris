@@ -1,27 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include "hack_ram.h"
 
-#define RAM_SIZE 32768 // 32K 16-bit words
-#define STACK_START 256
-#define STACK_END 2047
-
-typedef enum { HACK_MEMORY_SUCCESS, HACK_MEMORY_ERROR } HackMemoryStatus;
-
-typedef struct {
-  short
-      RAM[RAM_SIZE]; // This can represent the entire RAM. Each entry is 16-bit.
-
-  // You could also explicitly store pointers or indices to special addresses:
-  unsigned short *SP;   // Stack Pointer
-  unsigned short *LCL;  // Local segment
-  unsigned short *ARG;  // Argument segment
-  unsigned short *THIS; // this segment
-  unsigned short *THAT; // that segment
-  unsigned short *TEMP; // TEMP segment starts at address 5 and goes till 12
-  unsigned short *R13;  // Variable Register
-  unsigned short *R14;  // Variable Register
-  unsigned short *R15;  // Variable Register
-} HackMemory;
 
 HackMemory initHackMemory() {
   HackMemory memory;
@@ -30,16 +10,18 @@ HackMemory initHackMemory() {
   memory.ARG = (unsigned short *)&memory.RAM[2];
   memory.THIS =(unsigned short *)&memory.RAM[3];
   memory.THAT =(unsigned short *)&memory.RAM[4];
-  memory.TEMP =(unsigned short *)&memory.RAM[5];
+  memory.TEMP = (unsigned short *)&memory.RAM[5];
   memory.R13 =(unsigned short *)&memory.RAM[13];
   memory.R14 =(unsigned short *)&memory.RAM[14];
   memory.R15 =(unsigned short *)&memory.RAM[15];
+  memory.STATIC = (unsigned short *)&memory.STATIC[16];
 
   *memory.SP = STACK_START;
   *memory.LCL = 1015;
   *memory.ARG = 1400;
   *memory.THIS = 1650;
   *memory.THAT = 1800;
+  memory.STATIC_OFFSET = 16;
   return memory;
 }
 
@@ -51,15 +33,18 @@ void printHackMemory(HackMemory memory) {
   printf("\n");
 
   unsigned short *segments[] = {memory.LCL, memory.ARG, memory.THIS,
-                                memory.THAT, memory.TEMP};
-  const char *segmentNames[] = {"LCL", "ARG", "THIS", "THAT", "TEMP"};
+                                memory.THAT, memory.TEMP, memory.STATIC};
+  const char *segmentNames[] = {"LCL", "ARG", "THIS", "THAT", "TEMP", "STATIC"};
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 6; i++) {
     printf("%s: ", segmentNames[i]);
     for (int j = 0; j < 9; j++) {
       if (strcmp(segmentNames[i], "TEMP") == 0) {
         // temp allocated in place
         printf("%d ", memory.RAM[5+ j]);
+      } else if (strcmp(segmentNames[i], "STATIC") == 0) {
+        // Static allocated in place
+        printf("%d ", memory.RAM[16 + j]);
       } else {
         printf("%d ", memory.RAM[*segments[i] + j]);
       }
@@ -83,6 +68,11 @@ unsigned short *getSegmentBasePointer(HackMemory *memory, const char *segment,
       //hacky way, TEMP starts at RAM[5]
       static unsigned short constant_five = 5; 
       basePointer = &constant_five;
+  } else if (strcmp(segment, "static") == 0) {
+    // hacky way, STATIC starts at RAM[16]
+    // From the specs, it seems like STATIC memory segment behaves like a stack
+    // But we will follow what happens on the VM Emulator.
+    basePointer = &memory->STATIC_OFFSET;
   } else if (strcmp(segment, "pointer") == 0) {
     if (pointer_value == 0) {
       basePointer = memory->THIS;
