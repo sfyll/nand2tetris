@@ -1,0 +1,13 @@
+# Output executable name
+OUTFILE = VMTranslator
+
+# Source files
+SOURCES = main.c hack_ram.c instructions.c template.c file_handler.c
+
+# Build rule
+all:
+	gcc $(SOURCES) -o $(OUTFILE)
+	chmod +x $(OUTFILE)
+
+clean:
+	rm -f $(OUTFILE)
