@@ -1,7 +1,6 @@
 #ifndef INSTRUCTIONS_H
 #define INSTRUCTIONS_H
 
-#include <stdio.h>
 #include "template.h"
 
 //  TRANSLATING TEXT TO VM INSTRUCTIONS
@@ -40,7 +39,6 @@ typedef struct {
 } AssemblyMap;
 
 extern AssemblyMap assemblyMappings[];
-
 
 void initializeAssemblyMappings(void); 
 CommandMap getCommandType(const char *command);
