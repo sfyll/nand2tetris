@@ -2,7 +2,7 @@
 OUTFILE = VMTranslator
 
 # Source files
-SOURCES = main.c hack_ram.c instructions.c template.c file_handler.c
+SOURCES = VMTranslator.c hack_ram.c instructions.c template.c file_handler.c
 
 # Build rule
 all:
