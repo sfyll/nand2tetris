@@ -13,8 +13,6 @@ const char *POP_POINTER;
 const char *POP_STATIC;
 const char *POP_TEMP;
 
-const char *PUSH_TEMPLATE;
-const char *POP_TEMPLATE;
 const char *ADD_TEMPLATE;
 const char *SUB_TEMPLATE;
 const char *NEG_TEMPLATE;
@@ -27,20 +25,6 @@ const char *NOT_TEMPLATE;
 const char *FILE_END;
 
 void initializeTemplates(void) {
-  PUSH_TEMPLATE = "@%d\n"
-                  "D=A\n"
-                  "@SP\n"
-                  "A=M\n"
-                  "M=D\n"
-                  "@SP\n"
-                  "M=M+1\n";
-
-  POP_TEMPLATE = "@%d\n"
-                 "A=M-1\n"
-                 "D=A\n"
-                 "@SP\n"
-                 "A=M\n"
-                 "M=D\n";
 
   PUSH_MAIN = "@%d\n"
               "D=A\n"
@@ -239,7 +223,7 @@ void initializeTemplates(void) {
                 "M=M|D\n";
 
   NOT_TEMPLATE = "@SP\n"
-                 "M=M-1\n"
+                 "A=M-1\n"
                  "M=!M\n";
 
   FILE_END = "(END)\n"
@@ -269,7 +253,7 @@ void writePushAssembly(const char *assembly_template, char *segment, short *addr
   } else if (strcmp(segment, "constant") == 0 || strcmp(segment, "temp") == 0) {
       snprintf(assembly, sizeof(assembly), assembly_template, *address);
   } else if (strcmp(segment, "pointer") == 0) {
-    char *memory_idx = (address == 0) ? "THIS" : "THAT";
+    char *memory_idx = (*address == 0) ? "THIS" : "THAT";
     snprintf(assembly, sizeof(assembly), assembly_template, memory_idx);
   } else if (strcmp(segment, "static") == 0) {
     snprintf(assembly, sizeof(assembly), assembly_template, outputFile.filename, *address);
@@ -283,12 +267,11 @@ void writePopAssembly(const char *assembly_template, char *segment, short *addre
   if (strcmp(segment, "local") == 0 || strcmp(segment, "argument") == 0 ||
       strcmp(segment, "this") == 0 || strcmp(segment, "that") == 0) {
       char *mapped_segment = segment_mapping(segment);
-      printf("Let's try to write this: %s\n", assembly_template);
       snprintf(assembly, sizeof(assembly), assembly_template, *address, mapped_segment);
   } else if (strcmp(segment, "temp") == 0) {
       snprintf(assembly, sizeof(assembly), assembly_template, *address);
   } else if (strcmp(segment, "pointer") == 0) {
-    char *memory_idx = (address == 0) ? "THIS" : "THAT";
+    char *memory_idx = (*address == 0) ? "THIS" : "THAT";
     snprintf(assembly, sizeof(assembly), assembly_template, memory_idx);
   } else if (strcmp(segment, "static") == 0) {
     snprintf(assembly, sizeof(assembly), assembly_template, outputFile.filename, *address);

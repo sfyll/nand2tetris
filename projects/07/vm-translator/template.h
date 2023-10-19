@@ -4,19 +4,17 @@
 #include <stdio.h>
 #include "common_types.h"
 
-const char *PUSH_MAIN;
-const char *PUSH_CONSTANT;
-const char *PUSH_POINTER;
-const char *PUSH_STATIC;
-const char *PUSH_TEMP;
+extern const char *PUSH_MAIN;
+extern const char *PUSH_CONSTANT;
+extern const char *PUSH_POINTER;
+extern const char *PUSH_STATIC;
+extern const char *PUSH_TEMP;
 
-const char *POP_MAIN;
-const char *POP_POINTER;
-const char *POP_STATIC;
-const char *POP_TEMP;
+extern const char *POP_MAIN;
+extern const char *POP_POINTER;
+extern const char *POP_STATIC;
+extern const char *POP_TEMP;
 
-const char *PUSH_TEMPLATE;
-const char *POP_TEMPLATE;
 extern const char *ADD_TEMPLATE;
 extern const char *SUB_TEMPLATE;
 extern const char *NEG_TEMPLATE;
