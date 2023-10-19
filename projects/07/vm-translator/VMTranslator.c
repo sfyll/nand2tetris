@@ -5,7 +5,6 @@
 
 void executeInstructions(VMInstruction *instructions, int lineCount,
                          HackMemory *memory, FileData outputFile) {
-  int static_counter = 0;
   for (int i = 0; i < lineCount; i++) {
     VMInstruction instr = instructions[i];
     printf("%d, %s, %d\n", instr.commandType, instr.arg1, instr.arg2);
@@ -73,8 +72,6 @@ int main(int argc, char *argv[]) {
 
   int lineCount = 0;
   VMInstruction *instructions = loadFile(argv[1], &lineCount);
-
-  printInstructions(instructions, lineCount);
 
   // Use the utility function to open the output file
   FileData file = openOutputFile(argv[1]);
