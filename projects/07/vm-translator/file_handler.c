@@ -1,4 +1,5 @@
 #include <libgen.h>
+#include <string.h>
 #include "file_handler.h"
 
 // We returns instructions, a pointer to an array of VMInstruction
@@ -14,7 +15,6 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
 
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
     char *token;
-    int wordCount = 0;
 
     token = strtok(buffer, " \t\r\n");
 
@@ -56,32 +56,56 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
 FileData openOutputFile(const char *inputFile) {
   FileData fd;
   char outputPath[256];
-  
-  // Create the output filename by replacing .vm with .asm
+
+  //needed for submission on Coursera, cries if basename is used
+  char tempPath[256];
+
+  // Copy the inputFile into outputPath up to its size minus 1 (to ensure null termination)
   strncpy(outputPath, inputFile, sizeof(outputPath) - 1);
-  char *extension = strstr(outputPath, ".vm");
-  if (extension) {
-    strcpy(extension, ".asm");
+  strncpy(tempPath, outputPath, sizeof(tempPath) - 1);
+  outputPath[sizeof(outputPath) - 1] = '\0'; // Ensure null termination
+
+  // Find the .vm extension starting from the end
+  char *extensionPos = strrchr(outputPath, '.'); // Get the last dot in the string
+
+  if (extensionPos && strcmp(extensionPos, ".vm") == 0) {
+    // Correct extension found, let's replace
+    strcpy(extensionPos, ".asm");
   } else {
+    // No .vm extension found or the string ends unexpectedly
     printf("Error, Wrong File Extension, should be .vm: %s\n", inputFile);
     fd.file = NULL;
     return fd;
   }
 
+  // Debug: Print the outputPath after replacing the extension
+  printf("Debug: outputPath after replacing extension: %s\n", outputPath);
+
   // Extract just the filename from the path
-  char *base = basename(outputPath);
-  char *dot = strchr(base, '.');
-  if (dot) *dot = '\0'; // Remove the extension
+  char *base = basename(tempPath);
+
+  char *dotInBase = strrchr(base, '.');
+    if (dotInBase) {
+        *dotInBase = '\0'; // Null-terminate at the dot to remove the extension
+    }
+
+  // Debug: Print the base
+  printf("Debug: base after basename: %s\n", base);
+
   strncpy(fd.filename, base, sizeof(fd.filename) - 1);
+  fd.filename[sizeof(fd.filename) - 1] = '\0'; // Ensure null termination
 
   // Open the file for writing
   fd.file = fopen(outputPath, "w");
   if (!fd.file) {
     printf("Error: Could not create output file %s\n", outputPath);
   }
-  
+
+  printf("Ouput file location: %s\n", outputPath);
+
   return fd;
 }
+
 
 
 void closeFile(FILE *file) {
