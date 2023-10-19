@@ -14,7 +14,7 @@ typedef enum{
 
 // Memory structure for the Hack RAM
 typedef struct {
-    unsigned short RAM[RAM_SIZE]; // Entire RAM. Each entry is 16-bit.
+    short RAM[RAM_SIZE]; // Entire RAM. Each entry is 16-bit.
 
     // Pointers or indices to special addresses:
     unsigned short *SP;   // Stack Pointer
@@ -22,12 +22,11 @@ typedef struct {
     unsigned short *ARG;  // Argument segment
     unsigned short *THIS; // this segment
     unsigned short *THAT; // that segment
-    unsigned short *TEMP; // TEMP segment starts at address 5 and goes till 12
     unsigned short *R13;  // Variable Register
     unsigned short *R14;  // Variable Register
     unsigned short *R15;  // Variable Register
-    unsigned short *STATIC;  // Variable Register
     unsigned short STATIC_OFFSET; // Keep track of static pointer since the stack is in-place
+    unsigned short TEMP_OFFSET; // Keep track of static pointer since the stack is in-place
 } HackMemory;
 
 // Function prototypes

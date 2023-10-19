@@ -10,11 +10,9 @@ HackMemory initHackMemory() {
   memory.ARG = (unsigned short *)&memory.RAM[2];
   memory.THIS =(unsigned short *)&memory.RAM[3];
   memory.THAT =(unsigned short *)&memory.RAM[4];
-  memory.TEMP = (unsigned short *)&memory.RAM[5];
   memory.R13 =(unsigned short *)&memory.RAM[13];
   memory.R14 =(unsigned short *)&memory.RAM[14];
   memory.R15 =(unsigned short *)&memory.RAM[15];
-  memory.STATIC = (unsigned short *)&memory.STATIC[16];
 
   *memory.SP = STACK_START;
   *memory.LCL = 1015;
@@ -22,18 +20,19 @@ HackMemory initHackMemory() {
   *memory.THIS = 1650;
   *memory.THAT = 1800;
   memory.STATIC_OFFSET = 16;
+  memory.TEMP_OFFSET = 5;
   return memory;
 }
 
 void printHackMemory(HackMemory memory) {
   printf("Stack: ");
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 20; i++) {
     printf("%d ", memory.RAM[STACK_START + i]);
   }
   printf("\n");
 
-  unsigned short *segments[] = {memory.LCL, memory.ARG, memory.THIS,
-                                memory.THAT, memory.TEMP, memory.STATIC};
+  unsigned short *segments_pointers[] = {memory.LCL, memory.ARG, memory.THIS,
+                                memory.THAT};
   const char *segmentNames[] = {"LCL", "ARG", "THIS", "THAT", "TEMP", "STATIC"};
 
   for (int i = 0; i < 6; i++) {
@@ -41,12 +40,12 @@ void printHackMemory(HackMemory memory) {
     for (int j = 0; j < 9; j++) {
       if (strcmp(segmentNames[i], "TEMP") == 0) {
         // temp allocated in place
-        printf("%d ", memory.RAM[5+ j]);
+        printf("%d ", memory.RAM[memory.TEMP_OFFSET+ j]);
       } else if (strcmp(segmentNames[i], "STATIC") == 0) {
         // Static allocated in place
-        printf("%d ", memory.RAM[16 + j]);
+        printf("%d ", memory.RAM[memory.STATIC_OFFSET + j]);
       } else {
-        printf("%d ", memory.RAM[*segments[i] + j]);
+        printf("%d ", memory.RAM[*segments_pointers[i] + j]);
       }
     }
     printf("\n");
@@ -65,9 +64,7 @@ unsigned short *getSegmentBasePointer(HackMemory *memory, const char *segment,
   } else if (strcmp(segment, "that") == 0) {
     basePointer = memory->THAT;
   } else if (strcmp(segment, "temp") == 0) {
-      //hacky way, TEMP starts at RAM[5]
-      static unsigned short constant_five = 5; 
-      basePointer = &constant_five;
+      basePointer = &memory->TEMP_OFFSET;
   } else if (strcmp(segment, "static") == 0) {
     // hacky way, STATIC starts at RAM[16]
     // From the specs, it seems like STATIC memory segment behaves like a stack
@@ -125,7 +122,7 @@ HackMemoryStatus pushToStack(HackMemory *memory, const char *segment,
     (*memory->SP)++;
     return HACK_MEMORY_SUCCESS;
   } else {
-    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *memory->SP);
+    fprintf(stderr, "Error: Memory Pointer out-of-bond: %d\n", *basePointer);
     return HACK_MEMORY_ERROR;
   }
 }
@@ -172,7 +169,6 @@ short hack_sub(HackMemory *memory) {
     short x, y;
     popTopTwoFromStack(memory, &x, &y);
     short result = x - y;
-    printf("result: %d\n", result);
     pushToStack(memory, "stack", result);
     return memory->RAM[*memory->SP];
   } else {
