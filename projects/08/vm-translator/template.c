@@ -367,10 +367,7 @@ void writeLabelAssembly(const char *assembly_template, char *label,
   if (ptr) {
     *ptr = '\0';
   }
-  printf("Assemly template %s\n", assembly_template);
-  printf("label %s\n", label);
   snprintf(assembly, sizeof(assembly), assembly_template, label);
-  printf("Assemly %s\n", assembly);
   fprintf(outputFile.file, "%s\n",
           assembly); // Write to the output file
 }
@@ -386,10 +383,7 @@ void writeGotoAssembly(const char *assembly_template, char *label,
 void writeIfGotoAssembly(const char *assembly_template, char *label,
                          FileData outputFile) {
   static char assembly[256]; // Static so it persists after function return
-  printf("Assemly template %s\n", assembly_template);
-  printf("label %s\n", label);
   snprintf(assembly, sizeof(assembly), assembly_template, label);
-  printf("Assemly %s\n", assembly);
   fprintf(outputFile.file, "%s\n",
           assembly); // Write to the output file
 }
