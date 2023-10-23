@@ -10,6 +10,7 @@ typedef enum {
     C_POP,
     C_PUSH,
     BRANCHING,
+    FUNCTION,
     INVALID_TYPE
 } CommandType;
 

@@ -30,6 +30,9 @@ extern const char *LABEL_TEMPLATE;
 extern const char *IF_GOTO_TEMPLATE;
 extern const char *GOTO_TEMPLATE;
 
+extern const char *FUNCTION_CALL_TEMPLATE;
+extern const char *FUNCTION_RETURN_TEMPLATE;
+
 void initializeTemplates(void);
 
 void writePushAssembly(const char *assembly_template, char *segment, short *address, FileData outputFile);

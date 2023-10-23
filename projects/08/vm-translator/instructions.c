@@ -4,11 +4,12 @@
 #include <string.h>
 
 CommandMap commands[] = {
-    {"add", C_INSTRUCTION}, {"sub", C_INSTRUCTION},  {"neg", C_INSTRUCTION},
-    {"eq", C_INSTRUCTION},  {"gt", C_INSTRUCTION},   {"lt", C_INSTRUCTION},
-    {"and", C_INSTRUCTION}, {"or", C_INSTRUCTION},   {"not", C_INSTRUCTION},
-    {"push", C_PUSH},       {"pop", C_POP},          {"label", BRANCHING},
-    {"goto", BRANCHING},  {"if-goto", BRANCHING}};
+    {"add", C_INSTRUCTION}, {"sub", C_INSTRUCTION}, {"neg", C_INSTRUCTION},
+    {"eq", C_INSTRUCTION},  {"gt", C_INSTRUCTION},  {"lt", C_INSTRUCTION},
+    {"and", C_INSTRUCTION}, {"or", C_INSTRUCTION},  {"not", C_INSTRUCTION},
+    {"push", C_PUSH},       {"pop", C_POP},         {"label", BRANCHING},
+    {"goto", BRANCHING},    {"if-goto", BRANCHING}, {"function", FUNCTION},
+    {"call", FUNCTION},     {"return", FUNCTION}};
 
 // The below is for easy printing and debugging
 const char *CommandTypeStrings[] = {"C_INSTRUCTION", "C_POP", "C_PUSH",
@@ -26,10 +27,10 @@ AssemblyMap assemblyMappings[] = {
     {C_PUSH, "static", NULL},     {C_POP, "local", NULL},
     {C_POP, "argument", NULL},    {C_POP, "this", NULL},
     {C_POP, "that", NULL},        {C_POP, "temp", NULL},
-    {C_POP, "pointer", NULL},        {C_POP, "static", NULL},
+    {C_POP, "pointer", NULL},     {C_POP, "static", NULL},
     {BRANCHING, "label", NULL},   {BRANCHING, "goto", NULL},
-    {BRANCHING, "if-goto", NULL},
-};
+    {BRANCHING, "if-goto", NULL}, {FUNCTION, "function", NULL},
+    {FUNCTION, "call", NULL},     {FUNCTION, "return", NULL}};
 
 void initializeAssemblyMappings(void) {
   assemblyMappings[0].assembly_instructions = ADD_TEMPLATE;
@@ -59,6 +60,9 @@ void initializeAssemblyMappings(void) {
   assemblyMappings[24].assembly_instructions = LABEL_TEMPLATE;
   assemblyMappings[25].assembly_instructions = GOTO_TEMPLATE;
   assemblyMappings[26].assembly_instructions = IF_GOTO_TEMPLATE;
+  assemblyMappings[26].assembly_instructions = LABEL_TEMPLATE;
+  assemblyMappings[26].assembly_instructions = FUNCTION_CALL_TEMPLATE;
+  assemblyMappings[26].assembly_instructions = FUNCTION_RETURN_TEMPLATE;
 }
 
 CommandMap getCommandType(const char *command) {

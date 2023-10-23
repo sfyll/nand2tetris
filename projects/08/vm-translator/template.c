@@ -244,7 +244,7 @@ void initializeTemplates(void) {
                      "@%s\n"
                      "D;JNE\n";
 
-  GOTO_TEMPLATE = "@%s\n0;JMP\n";
+  GOTO_TEMPLATE = "@%s\n0;JMP\n";  
 }
 
 char *segment_mapping(char *segment) {
