@@ -1,3 +1,11 @@
+#include <dirent.h>
+#include <libgen.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "common_types.h"
 #include "file_handler.h"
 #include "hack_ram.h"
 #include "instructions.h"
@@ -75,20 +83,9 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
   writeEndOfFileAssembly(outputFile);
 }
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    printf("Usage: %s <file_path>\n", argv[0]);
-    return 1;
-  }
-
+void processFile(const char *filePath, FileData file) {
   int lineCount = 0;
-  VMInstruction *instructions = loadFile(argv[1], &lineCount);
-
-  // Use the utility function to open the output file
-  FileData file = openOutputFile(argv[1]);
-  if (!file.file) {
-    return 1; // exit if error occurred
-  }
+  VMInstruction *instructions = loadFile(filePath, &lineCount);
 
   // Create memory component
   HackMemory memory = initHackMemory();
@@ -99,8 +96,55 @@ int main(int argc, char *argv[]) {
   initializeAssemblyMappings();
 
   executeInstructions(instructions, lineCount, &memory, file);
+}
 
-  closeFile(file.file);
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    printf("Usage: %s <file_path_or_dir>\n", argv[0]);
+    return 1;
+  }
+
+  struct stat path_stat;
+  stat(argv[1], &path_stat);
+
+  FileData file;
+  char outputPath[256] = {0};
+
+  if (S_ISDIR(path_stat.st_mode)) {
+    snprintf(outputPath, sizeof(outputPath), "%s.vm", basename(argv[1]));
+    file = openOutputFile(outputPath);
+
+    if (!file.file) {
+      return 1; // exit if error occurred
+    }
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(argv[1]);
+    if (!dir) {
+      printf("Error opening directory.\n");
+      return 1;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+      char fileInDir[512];
+      snprintf(fileInDir, sizeof(fileInDir), "%s/%s", argv[1], entry->d_name);
+      if (strstr(fileInDir, ".vm")) {
+        processFile(fileInDir, file);
+      }
+    }
+
+    closedir(dir);
+  } else if (S_ISREG(path_stat.st_mode)) {
+    file = openOutputFile(argv[1]);;
+    if (!file.file) {
+      return 1; // exit if error occurred
+    }
+    processFile(argv[1], file);
+  } else {
+    printf("Unknown file type.\n");
+    return 1;
+  }
 
   return 0;
 }
