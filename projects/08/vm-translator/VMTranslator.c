@@ -125,18 +125,24 @@ int main(int argc, char *argv[]) {
       printf("Error opening directory.\n");
       return 1;
     }
+    // First pass: Process Sys.vm
+    char sysVmPath[512];
+    snprintf(sysVmPath, sizeof(sysVmPath), "%s/Sys.vm", argv[1]);
+    processFile(sysVmPath, file);
 
+    // Second pass: Process all other .vm files
     while ((entry = readdir(dir)) != NULL) {
       char fileInDir[512];
       snprintf(fileInDir, sizeof(fileInDir), "%s/%s", argv[1], entry->d_name);
-      if (strstr(fileInDir, ".vm")) {
+      if (strstr(fileInDir, ".vm") && strcmp(entry->d_name, "Sys.vm")) {
         processFile(fileInDir, file);
       }
     }
 
     closedir(dir);
   } else if (S_ISREG(path_stat.st_mode)) {
-    file = openOutputFile(argv[1]);;
+    file = openOutputFile(argv[1]);
+    ;
     if (!file.file) {
       return 1; // exit if error occurred
     }
