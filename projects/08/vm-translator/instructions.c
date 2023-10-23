@@ -60,9 +60,9 @@ void initializeAssemblyMappings(void) {
   assemblyMappings[24].assembly_instructions = LABEL_TEMPLATE;
   assemblyMappings[25].assembly_instructions = GOTO_TEMPLATE;
   assemblyMappings[26].assembly_instructions = IF_GOTO_TEMPLATE;
-  assemblyMappings[26].assembly_instructions = LABEL_TEMPLATE;
-  assemblyMappings[26].assembly_instructions = FUNCTION_CALL_TEMPLATE;
-  assemblyMappings[26].assembly_instructions = FUNCTION_RETURN_TEMPLATE;
+  assemblyMappings[27].assembly_instructions = LABEL_TEMPLATE;
+  assemblyMappings[28].assembly_instructions = FUNCTION_CALL_TEMPLATE;
+  assemblyMappings[29].assembly_instructions = FUNCTION_RETURN_TEMPLATE;
 }
 
 CommandMap getCommandType(const char *command) {

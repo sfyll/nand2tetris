@@ -50,5 +50,7 @@ void writeEndOfFileAssembly(FileData outputFile);
 void writeLabelAssembly(const char *assembly_template, char *label, FileData outputFile);
 void writeGotoAssembly(const char *assembly_template, char *label, FileData outputFile);
 void writeIfGotoAssembly(const char *assembly_template, char *label, FileData outputFile);
+void writeFunctionLabelAssembly(const char *assembly_template, char *label, int nArgs, FileData outputFile);
+void writeFunctionReturnAssembly(const char *assembly_template, FileData outputFile);
 #endif
 

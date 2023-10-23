@@ -27,6 +27,10 @@ const char *FILE_END;
 const char *LABEL_TEMPLATE;
 const char *IF_GOTO_TEMPLATE;
 const char *GOTO_TEMPLATE;
+
+const char *FUNCTION_CALL_TEMPLATE;
+const char *FUNCTION_RETURN_TEMPLATE;
+
 void initializeTemplates(void) {
 
   PUSH_MAIN = "@%d\n"
@@ -244,7 +248,79 @@ void initializeTemplates(void) {
                      "@%s\n"
                      "D;JNE\n";
 
-  GOTO_TEMPLATE = "@%s\n0;JMP\n";  
+  GOTO_TEMPLATE = "@%s\n0;JMP\n";
+
+  FUNCTION_CALL_TEMPLATE = "\n";
+
+  FUNCTION_RETURN_TEMPLATE = // frame = LCL
+      "@LCL\n"
+      "D=M\n"
+      "@frame\n"
+      "M=D\n"
+
+      // retAddr = *(frame-5)
+      "@5\n"
+      "D=A\n"
+      "@frame\n"
+      "A=M-D\n"
+      "D=M\n"
+      "@retAddr\n"
+      "M=D\n"
+
+      // *ARG = pop()
+      "@SP\n"
+      "AM=M-1\n"
+      "D=M\n"
+      "@ARG\n"
+      "A=M\n"
+      "M=D\n"
+
+      // SP = ARG+1
+      "@ARG\n"
+      "D=M+1\n"
+      "@SP\n"
+      "M=D\n"
+
+      // THAT = *(frame-1)
+      "@1\n"
+      "D=A\n"
+      "@frame\n"
+      "A=M-D\n"
+      "D=M\n"
+      "@THAT\n"
+      "M=D\n"
+
+      // THIS = *(frame-2)
+      "@2\n"
+      "D=A\n"
+      "@frame\n"
+      "A=M-D\n"
+      "D=M\n"
+      "@THIS\n"
+      "M=D\n"
+
+      // ARG = *(frame-3)
+      "@3\n"
+      "D=A\n"
+      "@frame\n"
+      "A=M-D\n"
+      "D=M\n"
+      "@ARG\n"
+      "M=D\n"
+
+      // LCL = *(frame-4)
+      "@4\n"
+      "D=A\n"
+      "@frame\n"
+      "A=M-D\n"
+      "D=M\n"
+      "@LCL\n"
+      "M=D\n"
+
+      // goto retAddr
+      "@retAddr\n"
+      "A=M\n"
+      "0;JMP\n";
 }
 
 char *segment_mapping(char *segment) {
@@ -386,4 +462,28 @@ void writeIfGotoAssembly(const char *assembly_template, char *label,
   snprintf(assembly, sizeof(assembly), assembly_template, label);
   fprintf(outputFile.file, "%s\n",
           assembly); // Write to the output file
+}
+
+void writeFunctionLabelAssembly(const char *assembly_template, char *label,
+                                int nArgs, FileData outputFile) {
+  static char assembly[256]; // Static so it persists after function return
+  // oddly enough carraige return \n characters gets added before the
+  // parenthesis which ultimately means that what comes after gets pre-prended
+  // to the string presently, that's the escape parenthesis.
+  char *ptr = strchr(label, '\r');
+  if (ptr) {
+    *ptr = '\0';
+  }
+  snprintf(assembly, sizeof(assembly), assembly_template, label);
+  fprintf(outputFile.file, "%s\n",
+          assembly); // Write to the output filename
+  // Push 0 onto the stack 'nArgs' times
+  for (int i = 0; i < nArgs; i++) {
+    fprintf(outputFile.file, "@0\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n");
+  }
+}
+
+void writeFunctionReturnAssembly(const char *assembly_template, FileData outputFile) {
+  fprintf(outputFile.file, "%s\n",
+          assembly_template); // Write to the output file
 }

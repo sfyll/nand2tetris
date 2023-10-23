@@ -43,8 +43,15 @@ VMInstruction *loadFile(const char *filePath, int *lineCount) {
       currentInstr.arg2 = atoi(strtok(
           NULL, " \n")); // Get the next token for arg2 and convert to int
     } else if (currentInstr.commandType == BRANCHING) {
-    currentInstr.arg1 = commandType.command;
-    currentInstr.arg3 = strdup(strtok(NULL, " \n"));
+      currentInstr.arg1 = commandType.command;
+      currentInstr.arg3 = strdup(strtok(NULL, " \n"));
+    } else if (currentInstr.commandType == FUNCTION) {
+      currentInstr.arg1 = commandType.command;
+      if ((strcmp(currentInstr.arg1, "function") == 0) ||
+          strcmp(currentInstr.arg1, "call") == 0) {
+        currentInstr.arg3 = strdup(strtok(NULL, " \n"));
+        currentInstr.arg2 = atoi(strtok(NULL, " \n"));
+      }
     }
     instructions =
         realloc(instructions, (*lineCount + 1) * sizeof(VMInstruction));

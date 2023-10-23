@@ -15,7 +15,7 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
                          HackMemory *memory, FileData outputFile) {
   for (int i = 0; i < lineCount; i++) {
     VMInstruction instr = instructions[i];
-    printf("%d, %s, %d\n", instr.commandType, instr.arg1, instr.arg2);
+    printf("RIGHT HERE: %d, %s, %d\n", instr.commandType, instr.arg1, instr.arg2);
     const char *assembly_code = getAssemblyTemplate(&instr);
 
     switch (instr.commandType) {
@@ -64,13 +64,20 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
       break;
 
     case BRANCHING:
-      printf("%d, %s, %s\n", BRANCHING, instr.arg1, instr.arg3);
       if (strcmp(instr.arg1, "label") == 0) {
         writeLabelAssembly(assembly_code, instr.arg3, outputFile);
       } else if (strcmp(instr.arg1, "goto") == 0) {
         writeGotoAssembly(assembly_code, instr.arg3, outputFile);
       } else if (strcmp(instr.arg1, "if-goto") == 0) {
         writeIfGotoAssembly(assembly_code, instr.arg3, outputFile);
+      }
+      break;
+
+    case FUNCTION:
+      if (strcmp(instr.arg1, "function") == 0) {
+        writeFunctionLabelAssembly(assembly_code, instr.arg3, instr.arg2, outputFile);
+      } else if (strcmp(instr.arg1, "return") == 0) {
+        writeFunctionReturnAssembly(assembly_code, outputFile);
       }
       break;
 
@@ -85,11 +92,14 @@ void executeInstructions(VMInstruction *instructions, int lineCount,
 
 void processFile(const char *filePath, FileData file) {
   int lineCount = 0;
+  printf("%s\n", filePath);
   VMInstruction *instructions = loadFile(filePath, &lineCount);
-
+  printf("UP\n");
+  
   // Create memory component
   HackMemory memory = initHackMemory();
 
+  printf("UP\n");
   // Initialize assembly templates
   initializeTemplates();
   // Populate Instruction mapper to assembly template
@@ -142,10 +152,10 @@ int main(int argc, char *argv[]) {
     closedir(dir);
   } else if (S_ISREG(path_stat.st_mode)) {
     file = openOutputFile(argv[1]);
-    ;
     if (!file.file) {
       return 1; // exit if error occurred
     }
+    printf("%s\n", file.filename);
     processFile(argv[1], file);
   } else {
     printf("Unknown file type.\n");
