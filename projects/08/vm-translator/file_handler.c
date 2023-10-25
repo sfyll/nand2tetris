@@ -3,12 +3,22 @@
 #include <string.h>
 
 // We returns instructions, a pointer to an array of VMInstruction
-VMInstruction *loadFile(const char *filePath, int *lineCount) {
+VMInstruction *loadFile(const char *filePath, int *lineCount, FileData *fd) {
   FILE *file = fopen(filePath, "r");
   if (file == NULL) {
     perror("Error opening file");
     return NULL;
   }
+ 
+  char tempPath[256];
+  strncpy(tempPath, filePath, sizeof(tempPath) - 1);
+  char *base = basename(tempPath);
+  char *dotInBase = strrchr(base, '.');
+  if (dotInBase) {
+    *dotInBase = '\0'; // Null-terminate at the dot to remove the extension
+  }
+
+  strncpy(fd->input_filename, base, sizeof(fd->input_filename) - 1);
 
   VMInstruction *instructions = NULL;
   char buffer[MAX_LINE_SIZE];
@@ -74,6 +84,13 @@ FileData openOutputFile(const char *inputFile) {
   strncpy(outputPath, inputFile, sizeof(outputPath) - 1);
   strncpy(tempPath, outputPath, sizeof(tempPath) - 1);
   outputPath[sizeof(outputPath) - 1] = '\0'; // Ensure null termination
+
+  // Remove leading "./" if present
+if (strncmp(outputPath, "./", 2) == 0) {
+    memmove(outputPath, outputPath+2, strlen(outputPath) - 1); // Move string 2 characters to the left
+}
+
+strncpy(tempPath, outputPath, sizeof(tempPath) - 1);
 
   // Find the .vm extension starting from the end
   char *extensionPos =
