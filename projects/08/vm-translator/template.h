@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "common_types.h"
 
+extern const char *INIT;
+
 extern const char *PUSH_MAIN;
 extern const char *PUSH_CONSTANT;
 extern const char *PUSH_POINTER;
@@ -35,6 +37,7 @@ extern const char *FUNCTION_RETURN_TEMPLATE;
 
 void initializeTemplates(void);
 
+void writeInitAssembly(FileData outputFile);
 void writePushAssembly(const char *assembly_template, char *segment, short *address, FileData outputFile);
 void writePopAssembly(const char *assembly_template, char *segment, short *address, FileData outputFile);
 void writeAddAssembly(const char *assembly_template, FileData outputFile);
@@ -52,5 +55,6 @@ void writeGotoAssembly(const char *assembly_template, char *label, FileData outp
 void writeIfGotoAssembly(const char *assembly_template, char *label, FileData outputFile);
 void writeFunctionLabelAssembly(const char *assembly_template, char *label, int nArgs, FileData outputFile);
 void writeFunctionReturnAssembly(const char *assembly_template, FileData outputFile);
+void writeFunctionCallAssembly(const char *assembly_template, char *label, int nArgs, int functionCallCounter, FileData outputFile);
 #endif
 

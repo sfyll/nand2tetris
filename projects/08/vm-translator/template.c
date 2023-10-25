@@ -2,6 +2,8 @@
 
 #include "template.h"
 
+const char *INIT;
+
 const char *PUSH_MAIN;
 const char *PUSH_CONSTANT;
 const char *PUSH_POINTER;
@@ -32,6 +34,10 @@ const char *FUNCTION_CALL_TEMPLATE;
 const char *FUNCTION_RETURN_TEMPLATE;
 
 void initializeTemplates(void) {
+  INIT = "@256\n"
+         "D=A\n"
+         "@SP\n"
+         "M=D\n";
 
   PUSH_MAIN = "@%d\n"
               "D=A\n"
@@ -47,7 +53,8 @@ void initializeTemplates(void) {
               "@SP\n"
               "M=M+1\n";
 
-  PUSH_CONSTANT = "@%d\n"
+  PUSH_CONSTANT =
+      "@%d\n"
                   "D=A\n"
                   "@SP\n"
                   "A=M\n"
@@ -250,74 +257,148 @@ void initializeTemplates(void) {
 
   GOTO_TEMPLATE = "@%s\n0;JMP\n";
 
-  FUNCTION_CALL_TEMPLATE = "\n";
+  FUNCTION_CALL_TEMPLATE = // Generate a unique label for returnAddress.
+                           // Typically, it is a combination of the function
+                           // name and a unique counter.
+      // We'll use a placeholder %s for the return address, which you can
+      // replace when generating the actual assembly.
+      "// push return address\n"
+      "@%s\n"
+      "D=A\n"
+      "@SP\n"
+      "A=M\n"
+      "M=D\n"
+      "@SP\n"
+      "M=M+1\n"
 
-  FUNCTION_RETURN_TEMPLATE = // frame = LCL
+      "//Push LCL\n"
+      "@LCL\n"
+      "D=M\n"
+      "@SP\n"
+      "A=M\n"
+      "M=D\n"
+      "@SP\n"
+      "M=M+1\n"
+
+      "//push ARG \n"
+      "@ARG\n"
+      "D=M\n"
+      "@SP\n"
+      "A=M\n"
+      "M=D\n"
+      "@SP\n"
+      "M=M+1\n"
+
+      "//push THIS \n"
+      "@THIS\n"
+      "D=M\n"
+      "@SP\n"
+      "A=M\n"
+      "M=D\n"
+      "@SP\n"
+      "M=M+1\n"
+
+      "//push THAT \n"
+      "@THAT\n"
+      "D=M\n"
+      "@SP\n"
+      "A=M\n"
+      "M=D\n"
+      "@SP\n"
+      "M=M+1\n"
+
+      "//ARG = SP-5-nArgs \n"
+      "@SP\n"
+      "D=M\n"
+      "@%d\n" // Placeholder for 5 + nArgs
+      "D=D-A\n"
+      "@ARG\n"
+      "M=D\n"
+
+      "//LCL = SP \n"
+      "@SP\n"
+      "D=M\n"
+      "@LCL\n"
+      "M=D\n"
+
+      "//goto f \n"
+      "@%s\n" // Placeholder for function name "f"
+      "0;JMP\n"
+
+      "//Inject the return address label into the code \n"
+      "(%s)\n";
+
+  FUNCTION_RETURN_TEMPLATE = 
+      "//frame = LCL \n"
       "@LCL\n"
       "D=M\n"
       "@frame\n"
       "M=D\n"
 
-      // retAddr = *(frame-5)
+      "//retAddr = *(frame-5) \n"
       "@5\n"
-      "D=A\n"
-      "@frame\n"
-      "A=M-D\n"
+      "D=D-A\n"
+      "A=D\n"
       "D=M\n"
       "@retAddr\n"
       "M=D\n"
 
-      // *ARG = pop()
+      "//*ARG = pop()\n"
       "@SP\n"
-      "AM=M-1\n"
+      "M=M-1\n"
+      "A=M\n"
       "D=M\n"
       "@ARG\n"
       "A=M\n"
       "M=D\n"
 
-      // SP = ARG+1
+      "//SP = ARG+1 \n"
       "@ARG\n"
       "D=M+1\n"
       "@SP\n"
       "M=D\n"
 
-      // THAT = *(frame-1)
-      "@1\n"
-      "D=A\n"
+      "//THAT = *(frame-1) \n"
       "@frame\n"
-      "A=M-D\n"
+      "D=M\n"
+      "@1\n"
+      "D=D-A\n"
+      "A=D\n"
       "D=M\n"
       "@THAT\n"
       "M=D\n"
 
-      // THIS = *(frame-2)
-      "@2\n"
-      "D=A\n"
+      "//THIS = *(frame-2)\n"
       "@frame\n"
-      "A=M-D\n"
+      "D=M\n"
+      "@2\n"
+      "D=D-A\n"
+      "A=D\n"
       "D=M\n"
       "@THIS\n"
       "M=D\n"
 
-      // ARG = *(frame-3)
-      "@3\n"
-      "D=A\n"
+      "//ARG = *(frame-3) \n"
       "@frame\n"
-      "A=M-D\n"
+      "D=M\n"
+      "@3\n"
+      "D=D-A\n"
+      "A=D\n"
       "D=M\n"
       "@ARG\n"
       "M=D\n"
 
-      // LCL = *(frame-4)
-      "@4\n"
-      "D=A\n"
+      "//LCL = *(frame-4) \n"
       "@frame\n"
-      "A=M-D\n"
+      "D=M\n"
+      "@4\n"
+      "D=D-A\n"
+      "A=D\n"
       "D=M\n"
       "@LCL\n"
       "M=D\n"
 
-      // goto retAddr
+      "//goto retAddr \n"
       "@retAddr\n"
       "A=M\n"
       "0;JMP\n";
@@ -335,6 +416,12 @@ char *segment_mapping(char *segment) {
   return NULL;
 }
 
+void writeInitAssembly(FileData outputFile) {
+    printf("INIT %s\n", INIT);
+    fprintf(outputFile.file, "%s\n", INIT);
+    writeFunctionCallAssembly(FUNCTION_CALL_TEMPLATE, "Sys.init", 0, 0, outputFile);
+}
+
 void writePushAssembly(const char *assembly_template, char *segment,
                        short *address, FileData outputFile) {
   static char assembly[256]; // Static so it persists after function return
@@ -349,7 +436,7 @@ void writePushAssembly(const char *assembly_template, char *segment,
     char *memory_idx = (*address == 0) ? "THIS" : "THAT";
     snprintf(assembly, sizeof(assembly), assembly_template, memory_idx);
   } else if (strcmp(segment, "static") == 0) {
-    snprintf(assembly, sizeof(assembly), assembly_template, outputFile.filename,
+    snprintf(assembly, sizeof(assembly), assembly_template, outputFile.input_filename,
              *address);
   }
   fprintf(outputFile.file, "%s\n", assembly); // Write to the output file
@@ -369,7 +456,7 @@ void writePopAssembly(const char *assembly_template, char *segment,
     char *memory_idx = (*address == 0) ? "THIS" : "THAT";
     snprintf(assembly, sizeof(assembly), assembly_template, memory_idx);
   } else if (strcmp(segment, "static") == 0) {
-    snprintf(assembly, sizeof(assembly), assembly_template, outputFile.filename,
+    snprintf(assembly, sizeof(assembly), assembly_template, outputFile.input_filename,
              *address);
   }
   fprintf(outputFile.file, "%s\n", assembly); // Write to the output file
@@ -451,6 +538,10 @@ void writeLabelAssembly(const char *assembly_template, char *label,
 void writeGotoAssembly(const char *assembly_template, char *label,
                        FileData outputFile) {
   static char assembly[256]; // Static so it persists after function return
+  char *ptr = strchr(label, '\r');
+  if (ptr) {
+    *ptr = '\0';
+  }
   snprintf(assembly, sizeof(assembly), assembly_template, label);
   fprintf(outputFile.file, "%s\n",
           assembly); // Write to the output file
@@ -459,6 +550,10 @@ void writeGotoAssembly(const char *assembly_template, char *label,
 void writeIfGotoAssembly(const char *assembly_template, char *label,
                          FileData outputFile) {
   static char assembly[256]; // Static so it persists after function return
+  char *ptr = strchr(label, '\r');
+  if (ptr) {
+    *ptr = '\0';
+  }
   snprintf(assembly, sizeof(assembly), assembly_template, label);
   fprintf(outputFile.file, "%s\n",
           assembly); // Write to the output file
@@ -466,7 +561,7 @@ void writeIfGotoAssembly(const char *assembly_template, char *label,
 
 void writeFunctionLabelAssembly(const char *assembly_template, char *label,
                                 int nArgs, FileData outputFile) {
-  static char assembly[256]; // Static so it persists after function return
+  static char assembly[512]; // Static so it persists after function return
   // oddly enough carraige return \n characters gets added before the
   // parenthesis which ultimately means that what comes after gets pre-prended
   // to the string presently, that's the escape parenthesis.
@@ -483,7 +578,21 @@ void writeFunctionLabelAssembly(const char *assembly_template, char *label,
   }
 }
 
-void writeFunctionReturnAssembly(const char *assembly_template, FileData outputFile) {
+void writeFunctionReturnAssembly(const char *assembly_template,
+                                 FileData outputFile) {
   fprintf(outputFile.file, "%s\n",
           assembly_template); // Write to the output file
+}
+
+void writeFunctionCallAssembly(const char *assembly_template, char *label,
+                               int nArgs, int functionCallCounter,
+                               FileData outputFile) {
+  static char placeholder[512];
+  static char assembly[512]; // Static so it persists after function return
+  snprintf(placeholder, sizeof(placeholder), "%s$ret.%d",
+           label, functionCallCounter);
+  snprintf(assembly, sizeof(assembly), assembly_template, 
+           placeholder, 5+nArgs, label, placeholder);
+  fprintf(outputFile.file, "%s\n",
+          assembly); // Write to the output file
 }
