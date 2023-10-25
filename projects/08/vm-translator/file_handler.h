@@ -11,7 +11,7 @@
 #define MAX_LINE_SIZE 1024
 
 // Function Prototypes
-VMInstruction *loadFile(const char *filePath, int *lineCount);
+VMInstruction *loadFile(const char *filePath, int *lineCount, FileData *fd);
 FileData openOutputFile(const char *inputFile);
 void closeFile(FILE *file);
 
