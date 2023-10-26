@@ -1,0 +1,65 @@
+class Renderer {
+    field Array squareGrid;
+    field GameState gameState;
+    field int rows, cols;
+
+    constructor Renderer new(GameState aGameState) {
+        var int i, j, index;
+        var Square tempSquare;
+        let gameState = aGameState;
+        let rows = gameState.rows();
+        let cols = gameState.cols();
+        let squareGrid = Array.new(rows * cols);
+        let i = 0;
+        let index = 0;
+
+        while (i < rows) {
+            let j = 0;
+            while (j < cols) {
+                let index = i * cols + j;
+                let squareGrid[index] = Square.new(i, j , 15);
+                if((i = 0) & (j=0)) {
+                    let tempSquare = squareGrid[index];
+                    do tempSquare.draw();
+                    do Sys.wait(100);
+                    do tempSquare.erase();
+                }
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+        return this;
+    }
+
+    method void render() {
+        var int i, j, index, cellState;
+        var Square tempSquare;
+        let index = 0;
+        let i = 0;
+        do Output.printInt(cols);
+        while (i < rows) {
+            let j = 0;
+            while (j < cols) {
+                let index = i * cols + j;
+                let tempSquare = squareGrid[index];
+                let cellState = gameState.getCell(i, j);
+                do Output.printInt(cellState);
+                do Output.println();
+                if (cellState = 1) {
+                    do Output.printInt(tempSquare.size());
+                    do Output.println();
+                    do tempSquare.draw();
+                    do Sys.wait(200);
+                } else {
+                    do tempSquare.erase();
+                }
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+        do Output.printString("End of Loop");
+        do Output.println();
+        return;
+    }
+}
+

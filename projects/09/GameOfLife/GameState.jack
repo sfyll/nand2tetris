@@ -1,0 +1,128 @@
+/** The game has only three rules, which are the following:
+* 1. Any live cell with two or three live neighbors survives.
+* 2. Any dead cell with three live neighbors becomes a live cell.
+* 3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
+*/
+
+class GameState {
+    field Array grid;
+    field int rows;
+    field int cols;
+
+    constructor GameState new(int setRows, int setCols) {
+        var int i;
+        let rows = setRows;
+        let cols = setCols;
+        let grid = Array.new(rows);  // Simulating 2D array as 1D
+        let i = 0;
+        while (i < rows) {
+            let grid[i] = Array.new(cols);  // Create inner arrays for columns
+            let i = i + 1;
+        }
+        do initGrid();
+        return this;
+    }
+
+    method void initGrid() {
+        var int i, j;
+        var array tempRow;
+        let i = 0;
+        while (i < rows) {
+            let tempRow = grid[i];
+            let j = 0;
+            while (j < cols) {
+                let tempRow[j] = 0;  // Initialize all cells as dead
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+
+        // Setting a 'Glider' pattern at the center
+        let tempRow = grid[rows / 2 -1];
+        let tempRow[cols/2] = 1;
+        let tempRow = grid[rows / 2];
+        let tempRow[cols / 2 + 1] = 1;
+        let tempRow = grid[rows / 2 + 1];
+        let tempRow[cols / 2 - 1] = 1;
+        let tempRow[cols / 2 ] = 1;
+        let tempRow[cols / 2 + 1] = 1;
+        return;
+    }
+
+    method void update() {
+        var Array newGrid;
+        var int i, j, index;
+        let newGrid = Array.new(rows * cols);
+        let i = 0;
+        while (i < rows) {
+            let j = 0;
+            while (j < cols) {
+                let index = i * cols + j;
+                let newGrid[index] = computeNextState(i, j);
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+        let grid = newGrid;
+        do newGrid.dispose();
+        return;
+    }
+
+    /** We construct a grid of surrounding cells
+    * while making sure we're not going beyond the grid dimensions.
+    * That allows us to increment liveNeighbors for each living cell. 
+    */
+    method int computeNextState(int x, int y) {
+        var int liveNeighbors;
+        var int dx, dy;
+        var int neighborX, neighborY, index;
+        let liveNeighbors = 0;
+        let dx = -1;
+        while (~(dx > 1)) {
+            let dy = -1;
+            while (~(dy > 1)) {
+                if (~(dx = 0) | ~(dy = 0)) {
+                    let neighborX = x + dx;
+                    let neighborY = y + dy;
+                    if ((~(neighborX < 0) & (neighborX < rows) & ~(neighborY < 0) & (neighborY < cols))) {
+                        let index = neighborX * cols + neighborY;
+                        let liveNeighbors = liveNeighbors + grid[index];
+                    }
+                }
+                let dy = dy + 1;
+            }
+            let dx = dx + 1;
+        }
+
+        let index = x * cols + y;
+
+        if (grid[index] = 1) {
+            if ((liveNeighbors = 2) | (liveNeighbors = 3)) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } else {
+            if (liveNeighbors = 3) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
+    method int getCell(int x, int y) {
+        var int index, result;
+        let index = x * cols + y;
+        let result = grid[index];
+        return result;
+    }
+    
+    method int rows() {
+        return rows;
+    }
+
+    method int cols() {
+        return cols;
+    }
+}

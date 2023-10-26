@@ -1,0 +1,34 @@
+class Main {
+    function void main() {
+        var GameState gameState;
+        var Renderer renderer;
+        var char key;
+        var boolean isPaused;
+        let isPaused = false;
+        let gameState = GameState.new(30, 30); 
+        let renderer = Renderer.new(gameState);
+
+        while (true) {
+            let key = Keyboard.keyPressed();
+            if (key = 112) { // ASCII for 'p'
+                let isPaused = true;
+            }
+            if (key = 114) { // ASCII for 'r'
+                let isPaused = false;
+            }
+
+            if (~isPaused) {
+                do renderer.render();
+                do gameState.update();
+                do Sys.wait(100); // Assuming some way to pause for 100 ms
+            }
+            
+            // Wait for key release
+            while (~(key = 0)) {
+                let key = Keyboard.keyPressed();
+            }
+        }
+        return;
+    }
+}
+
