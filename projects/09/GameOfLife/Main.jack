@@ -5,7 +5,7 @@ class Main {
         var char key;
         var boolean isPaused;
         let isPaused = false;
-        let gameState = GameState.new(64, 128); 
+        let gameState = GameState.new(15, 15); 
         let renderer = Renderer.new(gameState);
 
         while (true) {

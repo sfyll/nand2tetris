@@ -35,7 +35,6 @@ class Renderer {
         var Square tempSquare;
         
         let i = 0;
-        do Output.printInt(cols);
         while (i < rows) {
             let tempRow = squareGrid[i];
             let j = 0;
