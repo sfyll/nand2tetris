@@ -1,3 +1,4 @@
+/** we implement the glinder pattern as per Conway's Game of Life. */
 class Main {
     function void main() {
         var GameState gameState;
