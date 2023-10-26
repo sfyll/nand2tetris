@@ -5,7 +5,7 @@ class Main {
         var char key;
         var boolean isPaused;
         let isPaused = false;
-        let gameState = GameState.new(30, 30); 
+        let gameState = GameState.new(64, 128); 
         let renderer = Renderer.new(gameState);
 
         while (true) {
@@ -20,7 +20,7 @@ class Main {
             if (~isPaused) {
                 do renderer.render();
                 do gameState.update();
-                do Sys.wait(100); // Assuming some way to pause for 100 ms
+                do Sys.wait(500); // Assuming some way to pause for 100 ms
             }
             
             // Wait for key release

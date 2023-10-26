@@ -4,50 +4,45 @@ class Renderer {
     field int rows, cols;
 
     constructor Renderer new(GameState aGameState) {
-        var int i, j, index;
+        var int i, j;
+        var Array tempRow;
         var Square tempSquare;
+        
         let gameState = aGameState;
         let rows = gameState.rows();
         let cols = gameState.cols();
-        let squareGrid = Array.new(rows * cols);
+        let squareGrid = Array.new(rows);
+        
         let i = 0;
-        let index = 0;
-
         while (i < rows) {
+            let squareGrid[i] = Array.new(cols);
+            let tempRow = squareGrid[i];
             let j = 0;
             while (j < cols) {
-                let index = i * cols + j;
-                let squareGrid[index] = Square.new(i, j , 15);
-                if((i = 0) & (j=0)) {
-                    let tempSquare = squareGrid[index];
-                    do tempSquare.draw();
-                    do Sys.wait(100);
-                    do tempSquare.erase();
-                }
+                let tempRow[j] = Square.new(i, j, 5);
                 let j = j + 1;
             }
+            let squareGrid[i] = tempRow;
+        
             let i = i + 1;
         }
         return this;
     }
 
     method void render() {
-        var int i, j, index, cellState;
+        var int i, j, cellState;
+        var Array tempRow;
         var Square tempSquare;
-        let index = 0;
+        
         let i = 0;
         do Output.printInt(cols);
         while (i < rows) {
+            let tempRow = squareGrid[i];
             let j = 0;
             while (j < cols) {
-                let index = i * cols + j;
-                let tempSquare = squareGrid[index];
+                let tempSquare = tempRow[j];
                 let cellState = gameState.getCell(i, j);
-                do Output.printInt(cellState);
-                do Output.println();
                 if (cellState = 1) {
-                    do Output.printInt(tempSquare.size());
-                    do Output.println();
                     do tempSquare.draw();
                     do Sys.wait(200);
                 } else {
@@ -57,8 +52,6 @@ class Renderer {
             }
             let i = i + 1;
         }
-        do Output.printString("End of Loop");
-        do Output.println();
         return;
     }
 }

@@ -50,53 +50,54 @@ class GameState {
     }
 
     method void update() {
-        var Array newGrid;
-        var int i, j, index;
-        let newGrid = Array.new(rows * cols);
+        var Array newGrid, tempRow;
+        var int i, j;
+        let newGrid = Array.new(rows);
         let i = 0;
         while (i < rows) {
+            let newGrid[i] = Array.new(cols);
+            let tempRow = newGrid[i];
             let j = 0;
             while (j < cols) {
-                let index = i * cols + j;
-                let newGrid[index] = computeNextState(i, j);
+                let tempRow[j] = computeNextState(i, j);
                 let j = j + 1;
             }
             let i = i + 1;
         }
-        let grid = newGrid;
+        let i = 0;
+        while (i < rows) {
+            let tempRow = grid[i];
+            do tempRow.dispose();  // Dispose the old rows
+            let grid[i] = newGrid[i];  // Point to the updated rows
+            let i = i + 1;
+        }
         do newGrid.dispose();
         return;
     }
 
-    /** We construct a grid of surrounding cells
-    * while making sure we're not going beyond the grid dimensions.
-    * That allows us to increment liveNeighbors for each living cell. 
-    */
     method int computeNextState(int x, int y) {
-        var int liveNeighbors;
+        var int liveNeighbors, localNeighbor;
+        var Array tempRow;
         var int dx, dy;
-        var int neighborX, neighborY, index;
         let liveNeighbors = 0;
         let dx = -1;
         while (~(dx > 1)) {
             let dy = -1;
             while (~(dy > 1)) {
                 if (~(dx = 0) | ~(dy = 0)) {
-                    let neighborX = x + dx;
-                    let neighborY = y + dy;
-                    if ((~(neighborX < 0) & (neighborX < rows) & ~(neighborY < 0) & (neighborY < cols))) {
-                        let index = neighborX * cols + neighborY;
-                        let liveNeighbors = liveNeighbors + grid[index];
+                    if ((~(x + dx < 0) & (x + dx < rows) & ~(y + dy < 0) & (y + dy < cols))) {
+                        let tempRow = grid[x + dx];
+                        let localNeighbor = tempRow[y + dy];
+                        let liveNeighbors = liveNeighbors + localNeighbor;
                     }
                 }
                 let dy = dy + 1;
             }
             let dx = dx + 1;
         }
-
-        let index = x * cols + y;
-
-        if (grid[index] = 1) {
+        
+        let tempRow = grid[x];
+        if (tempRow[y] = 1) {
             if ((liveNeighbors = 2) | (liveNeighbors = 3)) {
                 return 1;
             } else {
@@ -112,12 +113,11 @@ class GameState {
     }
 
     method int getCell(int x, int y) {
-        var int index, result;
-        let index = x * cols + y;
-        let result = grid[index];
-        return result;
+        var Array tempRow;
+        let tempRow = grid[x];
+        return tempRow[y];
     }
-    
+
     method int rows() {
         return rows;
     }
