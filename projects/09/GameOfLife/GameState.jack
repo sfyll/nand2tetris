@@ -78,18 +78,20 @@ class GameState {
     method int computeNextState(int x, int y) {
         var int liveNeighbors, localNeighbor;
         var Array tempRow;
-        var int dx, dy;
+        var int dx, dy, newX, newY;
         let liveNeighbors = 0;
         let dx = -1;
         while (~(dx > 1)) {
             let dy = -1;
             while (~(dy > 1)) {
                 if (~(dx = 0) | ~(dy = 0)) {
-                    if ((~(x + dx < 0) & (x + dx < rows) & ~(y + dy < 0) & (y + dy < cols))) {
-                        let tempRow = grid[x + dx];
-                        let localNeighbor = tempRow[y + dy];
-                        let liveNeighbors = liveNeighbors + localNeighbor;
-                    }
+                    // Wrap-around logic
+                    let newX = modulo(x + dx + rows, rows);
+                    let newY = modulo(y + dy + cols, cols);
+                    
+                    let tempRow = grid[newX];
+                    let localNeighbor = tempRow[newY];
+                    let liveNeighbors = liveNeighbors + localNeighbor;
                 }
                 let dy = dy + 1;
             }
@@ -125,4 +127,33 @@ class GameState {
     method int cols() {
         return cols;
     }
+
+    method int modulo(int dividend, int divisor) {
+        var int isDividendNegative;
+        
+        if (divisor = 0) {
+            return 0;
+        }
+
+        let isDividendNegative = 0;
+        if (dividend < 0) {
+            let isDividendNegative = 1;
+            let dividend = -dividend;
+        }
+
+        if (divisor < 0) {
+            let divisor = -divisor;
+        }
+
+        while (~(dividend < divisor)) {
+            let dividend = dividend - divisor;
+        }
+
+        if (isDividendNegative) {
+            return -dividend;
+        }
+
+        return dividend;
+    }
+
 }
