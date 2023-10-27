@@ -28,7 +28,7 @@ class JackTokenizer:
 
     def is_operator(self):
         operators = ['+', '-', '*', '/', '&', '|', '<', '>', '=']
-        return self.current_token() in operators
+        return self.current_token in operators
 
     def hasMoreTokens(self):
         return self.current_index + 1 < len(self.tokens)
@@ -55,10 +55,9 @@ class JackTokenizer:
         return self.token_type()
     
     def peek_next_token(self):
-        self.advance()
-        next_token = self.current_token
-        self.retreat()
-        return next_token
+        if self.hasMoreTokens():
+            return self.tokens[self.current_index + 1]
+        return None   
 
     def expect_symbol(self, symbol = False) -> bool:
         if not symbol:
