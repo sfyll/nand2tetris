@@ -33,9 +33,7 @@ class SymbolTable:
             self.localCount += 1
         elif kind == 'argument':
             index = self.argumentCount
-            if index == 0 and self.subroutine_type == "method":
-                self.defineThisForMethod()
-            self.argumentCount += 2
+            self.argumentCount += 1
         else:
             raise ValueError(f"Unknown kind: {kind}")
         return index
@@ -55,8 +53,7 @@ class SymbolTable:
 
     def defineThisForMethod(self):
         # Automatically add the 'this' argument for methods
-        entry = Entry("this", self.className, "argument", 0)
-        self.subroutineTable.append(entry)
+        self.define("this", self.className, "argument")
 
     def accumulate(self, name=None, kind=None, type_=None):
         if name is None or name not in self.partial_entries:

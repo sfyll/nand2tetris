@@ -51,6 +51,9 @@ class CompilationEngine:
         if token_type == "stringConstant":
             token = token[1:-1] 
 
+        if token_type == "keyword" and token == "method":
+            self.symbol_table.defineThisForMethod()
+
         xml_output = f"<{token_type}> {token} </{token_type}>"
         self.tokenizer.advance()
         self.write(xml_output)
@@ -168,7 +171,7 @@ class CompilationEngine:
             self.consume_token()  # Consume the type
             if self.tokenizer.expect_identifier():
                 name = self.tokenizer.current_token
-                self.symbol_table.define(name, "argument", type_)
+                self.symbol_table.define(name, type_, "argument")
                 self.consume_token()  # Consume the variable name
             
             # While the next token is a comma, continue compiling type-varName pairs
@@ -179,7 +182,7 @@ class CompilationEngine:
                     self.consume_token()  # Consume the type
                 if self.tokenizer.expect_identifier():
                     name = self.tokenizer.current_token
-                    self.symbol_table.define(name, "argument", type_)
+                    self.symbol_table.define(name, type_, "argument")
                     self.consume_token()  # Consume the variable name
             self.indent -= 1 
         self.write("</parameterList>")
