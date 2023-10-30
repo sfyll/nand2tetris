@@ -1,9 +1,12 @@
 from SymbolTable import SymbolTable
+from VMWriter import VMWriter
+from JackTokenizer import JackTokenizer
 
 class CompilationEngine:
 
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
+    def __init__(self, tokenizer, vm_writer):
+        self.tokenizer: JackTokenizer= tokenizer
+        self.vm_writer: VMWriter = vm_writer
         self.symbol_table = SymbolTable()
         self.output = ""
         self.indent = 0
@@ -88,8 +91,6 @@ class CompilationEngine:
             self.consume_token()
         self.indent -= 1 
         self.write("</class>")
-        print(self.symbol_table.pretty_print_table("classTable"))
-        print(self.symbol_table.pretty_print_table("subroutineTable"))
 
     def compileClassVarDec(self):
         # Begin the class variable declaration with XML tag
@@ -129,18 +130,22 @@ class CompilationEngine:
 
     def compileSubroutine(self):
         self.write("<subroutineDec>")
+        self.symbol_table.startSubroutine()
+        self.vm_writer.reset()
         self.indent += 1 
         # Subroutine type ('constructor', 'function', or 'method')
-        self.symbol_table.subroutine_type = self.tokenizer.current_token
         if self.tokenizer.expect_keyword() and self.tokenizer.current_token in ["constructor", "function", "method"]:
             self.consume_token()
         
         # Return type ('void' or type)
+        self.symbol_table.subroutine_type = self.tokenizer.current_token
         if self.tokenizer.expect_keyword() or self.tokenizer.expect_identifier():
+            subroutine_return_type = self.tokenizer.current_token
             self.consume_token()
         
         # Subroutine name
         if self.tokenizer.expect_identifier():
+            self.symbol_table.subroutine_name = self.tokenizer.current_token
             self.consume_token()
 
         # '(' symbol
@@ -148,7 +153,7 @@ class CompilationEngine:
             self.consume_token()
 
         # Compile parameter list
-        self.compileParameterList()
+        parameter_count = self.compileParameterList()
         
         # ')' symbol
         if self.tokenizer.expect_symbol(')'):
@@ -161,10 +166,12 @@ class CompilationEngine:
         self.indent -= 1 
         self.write("</subroutineDec>")
 
-    def compileParameterList(self):
+    def compileParameterList(self) -> int:
         self.write("<parameterList>")
+        parameter_count = 0
         # Check if there's a type, indicating at least one parameter.
         if self.tokenizer.expect_identifier() or self.tokenizer.expect_keyword():
+            parameter_count += 1
             self.indent += 1
             # Compile first type-varName pair
             type_ = self.tokenizer.current_token
@@ -176,6 +183,7 @@ class CompilationEngine:
             
             # While the next token is a comma, continue compiling type-varName pairs
             while self.tokenizer.expect_symbol(','):
+                parameter_count += 1
                 self.consume_token()  # Consume the comma
                 if self.tokenizer.expect_identifier() or self.tokenizer.expect_keyword():
                     type_ = self.tokenizer.current_token
@@ -186,6 +194,7 @@ class CompilationEngine:
                     self.consume_token()  # Consume the variable name
             self.indent -= 1 
         self.write("</parameterList>")
+        return parameter_count
 
     def compileSubroutineBody(self):
         self.write("<subroutineBody>")
@@ -198,6 +207,9 @@ class CompilationEngine:
         # Compile variable declarations (zero or more)
         while self.tokenizer.expect_keyword("var"):
             self.compileVarDec()
+
+        self.vm_writer.writeFunction(self.symbol_table.subroutine_name, self.symbol_table.localCount)
+        print(self.symbol_table.subroutine_name, self.symbol_table.pretty_print_table("subroutineTable"))
 
         # Compile statements
         self.compileStatements()
@@ -260,6 +272,8 @@ class CompilationEngine:
                 self.compileWhile()
             elif token == "do":
                 self.compileDo()
+                # We do not care about the return value of a do function call!
+                self.vm_writer.writePop("temp", 0)
             elif token == "return":
                 self.compileReturn()
             else:
@@ -273,12 +287,15 @@ class CompilationEngine:
         self.write("<letStatement>")
         self.indent += 1 
 
+        varName = None
+
         # 'let' keyword
         if self.tokenizer.expect_keyword("let"):
             self.consume_token()
 
         # varName
         if self.tokenizer.expect_identifier():
+            varName = self.tokenizer.current_token
             self.consume_token()
 
         # Optional '[' expression ']'
@@ -300,11 +317,14 @@ class CompilationEngine:
             self.consume_token()
 
         self.indent -= 1 
+        #Assign to the variable
+        self.vm_writer.writePop(self.symbol_table.subroutineTable[varName].kind, self.symbol_table.subroutineTable[varName].index)
         self.write("</letStatement>")
 
     def compileIf(self):
         self.write("<ifStatement>")
         self.indent += 1
+        self.vm_writer.if_label_counter += 1
 
         # 'if' keyword
         if self.tokenizer.expect_keyword("if"):
@@ -318,11 +338,20 @@ class CompilationEngine:
                 self.consume_token()
 
         # '{' statements '}'
+        success_label = self.vm_writer.get_next_if_label("TRUE")
+        failure_label = self.vm_writer.get_next_if_label("FALSE")
+        end_label = self.vm_writer.get_next_if_label("END")
+        self.vm_writer.writeIf(success_label)
+        self.vm_writer.writeGoto(failure_label)
+        self.vm_writer.writeLabel(success_label)
         if self.tokenizer.expect_symbol("{"):
             self.consume_token()
             self.compileStatements()
             if self.tokenizer.expect_symbol("}"):
                 self.consume_token()
+
+        self.vm_writer.writeGoto(end_label)
+        self.vm_writer.writeLabel(failure_label)
 
         # Optional 'else' clause
         if self.tokenizer.expect_keyword("else"):
@@ -333,12 +362,19 @@ class CompilationEngine:
                 if self.tokenizer.expect_symbol("}"):
                     self.consume_token()
 
+        self.vm_writer.writeLabel(end_label)
+        
         self.indent -= 1 
         self.write("</ifStatement>")
 
     def compileWhile(self):
         self.write("<whileStatement>")
+        self.vm_writer.while_label_counter += 1
         self.indent += 1 
+
+        success_label = self.vm_writer.get_next_while_label("EXP")
+        failure_label = self.vm_writer.get_next_while_label("END")
+        self.vm_writer.writeLabel(success_label)
 
         # 'while' keyword
         if self.tokenizer.expect_keyword("while"):
@@ -351,12 +387,19 @@ class CompilationEngine:
             if self.tokenizer.expect_symbol(")"):
                 self.consume_token()
 
+        self.vm_writer.writeUnaryOperator('~')
+
+        self.vm_writer.writeIf(failure_label)
+
         # '{' statements '}'
         if self.tokenizer.expect_symbol("{"):
             self.consume_token()
             self.compileStatements()
             if self.tokenizer.expect_symbol("}"):
                 self.consume_token()
+
+        self.vm_writer.writeGoto(success_label)
+        self.vm_writer.writeLabel(failure_label)
                 
         self.indent -= 1 
         self.write("</whileStatement>")
@@ -394,7 +437,9 @@ class CompilationEngine:
         # ';'
         if self.tokenizer.expect_symbol(";"):
             self.consume_token()
-            
+        
+        self.vm_writer.writeReturn(self.symbol_table.subroutine_type)
+
         self.indent -= 1 
         self.write("</returnStatement>")
 
@@ -408,11 +453,13 @@ class CompilationEngine:
         # While the current token is an operator, compile the operator and the subsequent term
         while self.tokenizer.is_operator():
             # Consume the operator
+            operator = self.tokenizer.current_token
             self.consume_token()
             
             # Compile the subsequent term
             self.compileTerm()
 
+            self.vm_writer.writeOperator(operator)
 
         self.indent -= 1 
         self.write("</expression>")
@@ -423,14 +470,24 @@ class CompilationEngine:
 
         # Check for integer constant
         if self.tokenizer.expect_integerConstant():
+            self.vm_writer.writePush("constant", self.tokenizer.current_token)
             self.consume_token()
 
         # Check for string constant
         elif self.tokenizer.expect_stringConstant():
+            self.vm_writer.writePush("constant", self.tokenizer.current_token)
             self.consume_token()
 
         # Check for keyword constant (true, false, null, this)
         elif self.tokenizer.expect_keyword() and self.tokenizer.current_token in ["true", "false", "null", "this"]:
+            if self.tokenizer.current_token == "true":
+                self.vm_writer.writePush("constant", 0)
+                self.vm_writer.writeUnaryOperator("~")
+            elif self.tokenizer.current_token in ["false", "null"]:
+                self.vm_writer.writePush("constant", 0)
+            else:
+                self.vm_writer.writePush("argument", 0)
+                self.vm_writer.writePop("pointer", 0)
             self.consume_token()
 
         # Check for varName (start with identifier but not followed by '[' or '(' or '.')
@@ -452,6 +509,7 @@ class CompilationEngine:
 
             # plain varName
             else:
+                self.vm_writer.writePush(self.symbol_table.subroutineTable[self.tokenizer.current_token].kind, self.symbol_table.subroutineTable[self.tokenizer.current_token].index)
                 self.consume_token()
 
         # '(' expression ')'
@@ -463,25 +521,31 @@ class CompilationEngine:
 
         # unaryOp term (unaryOp being '-' or '~')
         elif self.tokenizer.expect_symbol() and self.tokenizer.current_token in ["-", "~"]:
+            unary_operator = self.tokenizer.current_token
             self.consume_token()
             self.compileTerm()
+            self.vm_writer.writeUnaryOperator(unary_operator)
 
         self.indent -= 1 
         self.write("</term>")
 
     def compileSubroutineCall(self):
         # subroutineName '(' expressionList ')' | (className | varName) '.' subroutineName '(' expressionList ')'
+        function_name = ""
         if self.tokenizer.expect_identifier():
+            function_name += self.tokenizer.current_token
             self.consume_token()
         if self.tokenizer.expect_symbol("."):
             self.consume_token()
-            
+        
+        function_name += "." + self.tokenizer.current_token
         self.consume_token()
-
+        
         if self.tokenizer.expect_symbol("("):
             self.consume_token()
         
-        self.compileExpressionList()
+        expression_count = self.compileExpressionList()
+        self.vm_writer.writeCall(function_name, expression_count)
         if self.tokenizer.expect_symbol(")"):
             self.consume_token()
 
@@ -507,4 +571,3 @@ class CompilationEngine:
 
     def write(self, data):
         self.output += f"  " * self.indent +  data + "\n"
-
