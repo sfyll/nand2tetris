@@ -17,7 +17,6 @@ class JackAnalyzer:
 
     def run(self) -> None:
         self.compilation_engine.compileClass()
-        self.write_xml(self.compilation_engine.output) 
 
     def get_output_file_location(self) -> str:
         base_name = os.path.splitext(self.input_file)[0]

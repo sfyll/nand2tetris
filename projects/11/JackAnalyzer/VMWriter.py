@@ -46,6 +46,8 @@ class VMWriter:
             self.file.write(f"eq\n")
         elif command == "&":
             self.file.write(f"and\n")
+        elif command == "|":
+            self.file.write(f"or\n")
         else:
             raise NotImplementedError(f"{command=}")
 
