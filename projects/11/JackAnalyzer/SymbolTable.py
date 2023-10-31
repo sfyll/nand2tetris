@@ -1,14 +1,26 @@
+from typing import Dict
+
 class SymbolTable:
-    def __init__(self, className=None, subroutineType = None):
+    def __init__(self, className=None, subroutineReturnType=None, subroutineName = None, subroutineType = None):
         self.className = className
-        self.classTable = []  
-        self.subroutineTable = [] 
+        self.classTable: Dict[str, Entry] = {}  
+        self.subroutineTable: Dict[str, Entry] = {} 
+        self.subroutine_return_type = subroutineReturnType
+        self.subroutine_name = subroutineName
         self.subroutine_type = subroutineType
         self.partial_entries = {}  # To hold the accumulating attributes
         self.staticCount = 0
         self.fieldCount = 0
         self.localCount = 0
         self.argumentCount = 0
+
+    def find_entry(self, key):
+        if key in self.classTable:
+            return self.classTable[key]
+        elif key in self.subroutineTable:
+            return self.subroutineTable[key]
+        else:
+            raise KeyError(f"'{key}' not found in classTable or subroutineTable.")
 
     def pretty_print_table(self, table_name):
         if table_name == "classTable":
@@ -18,7 +30,7 @@ class SymbolTable:
         else:
             raise ValueError(f"Unknown table: {table_name}")
 
-        entries_str = ", ".join([str(entry) for entry in table])
+        entries_str = ", ".join([str(entry) for entry in table.values()])
         return f"{table_name}=[{entries_str}]"
 
     def _get_and_increment_count(self, kind):
@@ -39,17 +51,18 @@ class SymbolTable:
         return index
     
     def startSubroutine(self):
-        self.subroutineTable = []
+        self.subroutineTable = {}
         self.localCount = 0
         self.argumentCount = 0
 
     def define(self, name, type_, kind):
         index = self._get_and_increment_count(kind)
-
-        table = self.classTable if kind in ['static', 'field'] else self.subroutineTable
-
         entry = Entry(name, type_, kind, index)
-        table.append(entry)
+        
+        if kind in ['static', 'field']:
+            self.classTable[name] = entry
+        else:
+            self.subroutineTable[name] = entry
 
     def defineThisForMethod(self):
         # Automatically add the 'this' argument for methods
@@ -74,7 +87,6 @@ class SymbolTable:
         if 'name' in entry and 'kind' in entry and 'type_' in entry:
             self.define(entry['name'], entry['type_'], entry['kind'])
             del self.partial_entries[name]  # remove the entry from accumulator once defined
-
 
 class Entry:
     def __init__(self, name, type_, kind, index):
