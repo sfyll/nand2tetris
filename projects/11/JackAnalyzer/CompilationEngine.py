@@ -153,7 +153,7 @@ class CompilationEngine:
             self.consume_token()
 
         # Compile parameter list
-        parameter_count = self.compileParameterList()
+        self.compileParameterList()
         
         # ')' symbol
         if self.tokenizer.expect_symbol(')'):
@@ -161,7 +161,7 @@ class CompilationEngine:
 
         # Subroutine body: '{' statements '}'
         if self.tokenizer.expect_symbol('{'):
-            self.compileSubroutineBody(parameter_count)
+            self.compileSubroutineBody()
  
         self.indent -= 1 
         self.write("</subroutineDec>")
@@ -196,7 +196,7 @@ class CompilationEngine:
         self.write("</parameterList>")
         return parameter_count
 
-    def compileSubroutineBody(self, parameter_count):
+    def compileSubroutineBody(self):
         self.write("<subroutineBody>")
         self.indent += 1
 
@@ -297,6 +297,7 @@ class CompilationEngine:
         self.indent += 1 
 
         varName = None
+        indexed_array = False
 
         # 'let' keyword
         if self.tokenizer.expect_keyword("let"):
@@ -311,6 +312,13 @@ class CompilationEngine:
         if self.tokenizer.expect_symbol("["):
             self.consume_token()
             self.compileExpression()
+            try:
+                entry = self.symbol_table.find_entry(varName)
+                self.vm_writer.writePush(entry.kind, entry.index)
+                self.vm_writer.writeOperator("+")
+                indexed_array = True
+            except Exception as e:
+                raise e
             if self.tokenizer.expect_symbol("]"):
                 self.consume_token()
 
@@ -329,7 +337,13 @@ class CompilationEngine:
         #Assign to the variable
         try:
             entry = self.symbol_table.find_entry(varName)
-            self.vm_writer.writePop(entry.kind, entry.index)
+            if indexed_array:
+                        self.vm_writer.writePop("temp", 0)
+                        self.vm_writer.writePop("pointer", 1)
+                        self.vm_writer.writePush("temp", 0)
+                        self.vm_writer.writePop("that", 0)
+            else:
+                self.vm_writer.writePop(entry.kind, entry.index)
         except Exception as e:
             raise e
         self.write("</letStatement>")
@@ -488,7 +502,11 @@ class CompilationEngine:
 
         # Check for string constant
         elif self.tokenizer.expect_stringConstant():
-            self.vm_writer.writePush("constant", self.tokenizer.current_token)
+            self.vm_writer.writePush("constant", len(self.tokenizer.current_token[1:-1]))
+            self.vm_writer.writeCall("String.new", 1)
+            for character in self.tokenizer.current_token[1:-1]:
+                self.vm_writer.writePush("constant", ord(character))
+                self.vm_writer.writeCall("String.appendChar", 2)
             self.consume_token()
 
         # Check for keyword constant (true, false, null, this)
@@ -508,10 +526,26 @@ class CompilationEngine:
             next_token = self.tokenizer.peek_next_token()
             # varName '[' expression ']'
             if next_token == "[":
+                array = self.symbol_table.find_entry(self.tokenizer.current_token)
+                
                 self.consume_token()
                 if self.tokenizer.expect_symbol("["):
                     self.consume_token()
+
                 self.compileExpression()
+
+                try:
+                    self.vm_writer.writePush(array.kind, array.index)
+                except Exception as e:
+                    raise e
+                self.vm_writer.writeOperator("+")
+
+                try:
+                    self.vm_writer.writePop("pointer", "1")
+                    self.vm_writer.writePush("that", 0)
+                except Exception as e:
+                    raise e
+                
                 if self.tokenizer.expect_symbol("]"):
                     self.consume_token()
 
