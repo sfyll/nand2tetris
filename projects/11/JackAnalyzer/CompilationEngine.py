@@ -609,11 +609,8 @@ class CompilationEngine:
         
         if self.tokenizer.expect_symbol("("):
             self.consume_token()
-
-        self.symbol_table.pretty_print_table("subroutineTable")
             
         expression_count += self.compileExpressionList()
-        print(f"{function_name=}, {expression_count=}")
         self.vm_writer.writeCall(function_name, expression_count)
         if self.tokenizer.expect_symbol(")"):
             self.consume_token()
