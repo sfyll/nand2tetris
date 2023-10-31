@@ -1,17 +1,26 @@
 from typing import Dict
 
 class SymbolTable:
-    def __init__(self, className=None, subroutineType=None, subroutineName = None):
+    def __init__(self, className=None, subroutineReturnType=None, subroutineName = None, subroutineType = None):
         self.className = className
         self.classTable: Dict[str, Entry] = {}  
         self.subroutineTable: Dict[str, Entry] = {} 
-        self.subroutine_type = subroutineType
+        self.subroutine_return_type = subroutineReturnType
         self.subroutine_name = subroutineName
+        self.subroutine_type = subroutineType
         self.partial_entries = {}  # To hold the accumulating attributes
         self.staticCount = 0
         self.fieldCount = 0
         self.localCount = 0
         self.argumentCount = 0
+
+    def find_entry(self, key):
+        if key in self.classTable:
+            return self.classTable[key]
+        elif key in self.subroutineTable:
+            return self.subroutineTable[key]
+        else:
+            raise KeyError(f"'{key}' not found in classTable or subroutineTable.")
 
     def pretty_print_table(self, table_name):
         if table_name == "classTable":

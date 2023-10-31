@@ -134,13 +134,13 @@ class CompilationEngine:
         self.vm_writer.reset()
         self.indent += 1 
         # Subroutine type ('constructor', 'function', or 'method')
+        self.symbol_table.subroutine_type = self.tokenizer.current_token
         if self.tokenizer.expect_keyword() and self.tokenizer.current_token in ["constructor", "function", "method"]:
             self.consume_token()
         
         # Return type ('void' or type)
-        self.symbol_table.subroutine_type = self.tokenizer.current_token
+        self.symbol_table.subroutine_return_type = self.tokenizer.current_token
         if self.tokenizer.expect_keyword() or self.tokenizer.expect_identifier():
-            subroutine_return_type = self.tokenizer.current_token
             self.consume_token()
         
         # Subroutine name
@@ -161,7 +161,7 @@ class CompilationEngine:
 
         # Subroutine body: '{' statements '}'
         if self.tokenizer.expect_symbol('{'):
-            self.compileSubroutineBody()
+            self.compileSubroutineBody(parameter_count)
  
         self.indent -= 1 
         self.write("</subroutineDec>")
@@ -196,7 +196,7 @@ class CompilationEngine:
         self.write("</parameterList>")
         return parameter_count
 
-    def compileSubroutineBody(self):
+    def compileSubroutineBody(self, parameter_count):
         self.write("<subroutineBody>")
         self.indent += 1
 
@@ -207,9 +207,18 @@ class CompilationEngine:
         # Compile variable declarations (zero or more)
         while self.tokenizer.expect_keyword("var"):
             self.compileVarDec()
-
+ 
         self.vm_writer.writeFunction(self.symbol_table.subroutine_name, self.symbol_table.localCount)
-        print(self.symbol_table.subroutine_name, self.symbol_table.pretty_print_table("subroutineTable"))
+
+        #Add memory space for constructor arguments if needed
+        if self.symbol_table.subroutine_type == "constructor":
+            self.vm_writer.writePush("constant", self.symbol_table.fieldCount)
+            self.vm_writer.writeCall("Memory.alloc", 1)
+            self.vm_writer.writePop("pointer", 0)
+
+        if self.symbol_table.subroutine_type == "method":
+            self.vm_writer.writePush("argument", 0)
+            self.vm_writer.writePop("pointer", 0)
 
         # Compile statements
         self.compileStatements()
@@ -318,7 +327,11 @@ class CompilationEngine:
 
         self.indent -= 1 
         #Assign to the variable
-        self.vm_writer.writePop(self.symbol_table.subroutineTable[varName].kind, self.symbol_table.subroutineTable[varName].index)
+        try:
+            entry = self.symbol_table.find_entry(varName)
+            self.vm_writer.writePop(entry.kind, entry.index)
+        except Exception as e:
+            raise e
         self.write("</letStatement>")
 
     def compileIf(self):
@@ -438,7 +451,7 @@ class CompilationEngine:
         if self.tokenizer.expect_symbol(";"):
             self.consume_token()
         
-        self.vm_writer.writeReturn(self.symbol_table.subroutine_type)
+        self.vm_writer.writeReturn(self.symbol_table)
 
         self.indent -= 1 
         self.write("</returnStatement>")
@@ -486,8 +499,7 @@ class CompilationEngine:
             elif self.tokenizer.current_token in ["false", "null"]:
                 self.vm_writer.writePush("constant", 0)
             else:
-                self.vm_writer.writePush("argument", 0)
-                self.vm_writer.writePop("pointer", 0)
+                self.vm_writer.writePush("pointer", 0)
             self.consume_token()
 
         # Check for varName (start with identifier but not followed by '[' or '(' or '.')
@@ -509,7 +521,11 @@ class CompilationEngine:
 
             # plain varName
             else:
-                self.vm_writer.writePush(self.symbol_table.subroutineTable[self.tokenizer.current_token].kind, self.symbol_table.subroutineTable[self.tokenizer.current_token].index)
+                try:
+                    entry = self.symbol_table.find_entry(self.tokenizer.current_token)
+                    self.vm_writer.writePush(entry.kind, entry.index)
+                except Exception as e:
+                    raise e
                 self.consume_token()
 
         # '(' expression ')'
@@ -532,19 +548,38 @@ class CompilationEngine:
     def compileSubroutineCall(self):
         # subroutineName '(' expressionList ')' | (className | varName) '.' subroutineName '(' expressionList ')'
         function_name = ""
+        expression_count = 0
+        entry = None
         if self.tokenizer.expect_identifier():
-            function_name += self.tokenizer.current_token
-            self.consume_token()
+            #fix name maping
+            try:
+                entry = self.symbol_table.find_entry(self.tokenizer.current_token)
+                function_name += entry.type_
+                if entry.type_ not in ["bool", "int", "char"]:
+                    expression_count += 1
+                    self.vm_writer.writePush(entry.kind, entry.index)
+            except Exception as e:
+                function_name += self.tokenizer.current_token
+            finally:
+                self.consume_token()
         if self.tokenizer.expect_symbol("."):
             self.consume_token()
-        
-        function_name += "." + self.tokenizer.current_token
+            function_name += "." + self.tokenizer.current_token
+        else:
+            #in class function
+            function_name = self.symbol_table.className + "." + function_name
+            expression_count += 1
+            self.vm_writer.writePush("pointer", 0)
+
         self.consume_token()
         
         if self.tokenizer.expect_symbol("("):
             self.consume_token()
-        
-        expression_count = self.compileExpressionList()
+
+        self.symbol_table.pretty_print_table("subroutineTable")
+            
+        expression_count += self.compileExpressionList()
+        print(f"{function_name=}, {expression_count=}")
         self.vm_writer.writeCall(function_name, expression_count)
         if self.tokenizer.expect_symbol(")"):
             self.consume_token()

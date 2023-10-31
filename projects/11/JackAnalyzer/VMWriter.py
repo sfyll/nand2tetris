@@ -1,5 +1,7 @@
 import os
 
+from SymbolTable import SymbolTable
+
 class VMWriter:
     def __init__(self, output_file):
         self.file = open(output_file, 'w')
@@ -18,9 +20,13 @@ class VMWriter:
         return f"WHILE_{type_}{self.while_label_counter}"
     
     def writePush(self, segment, index):
+        if segment == "field":
+            segment = "this"
         self.file.write(f"push {segment} {index}\n")
 
     def writePop(self, segment, index):
+        if segment == "field":
+            segment = "this"
         self.file.write(f"pop {segment} {index}\n")
 
     def writeOperator(self, command):
@@ -34,6 +40,8 @@ class VMWriter:
             self.writeCall("Math.divide", 2)
         elif command == ">":
             self.file.write(f"gt\n")
+        elif command == "<":
+            self.file.write(f"lt\n")
         elif command == "=":
             self.file.write(f"eq\n")
         elif command == "&":
@@ -59,11 +67,14 @@ class VMWriter:
     def writeCall(self, name, nArgs):
         self.file.write(f"call {name} {nArgs}\n")
 
+    def writeConstructorFunction(self, className, nVars):
+        self.file.write(f"function {className}.new {nVars}\n")
+
     def writeFunction(self, name, nVars):
         self.file.write(f"function {self.fileName}.{name} {nVars}\n")
 
-    def writeReturn(self, function_return_type: str):
-        if function_return_type == 'void':
+    def writeReturn(self, symbol_table: SymbolTable):
+        if symbol_table.subroutine_return_type == 'void':
             self.writePush("constant", 0)
         self.file.write("return\n")
 
