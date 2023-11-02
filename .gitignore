@@ -1,0 +1,53 @@
+# Ignore everything
+*
+
+# But not these directories
+!.gitignore
+!/projects/06/assembler/
+!/projects/08/vm-translator/
+!/projects/11/JackCompiler/
+!/projects/12/
+!/README/
+!/README/*
+!README.md
+
+# Additionally, we need to keep the directory structure leading to our whitelisted directories
+!/projects/
+!/projects/06/
+!/projects/08/
+!/projects/11/
+
+# However, we should still ignore everything else inside the projects directory
+!/projects/06/assembler/
+!/projects/08/vm-translator/
+!/projects/11/JackCompiler/
+!/projects/12/
+
+# Ignore all files in the kept directories
+/projects/06/assembler/*
+/projects/08/vm-translator/*
+/projects/11/JackCompiler/*
+/projects/12/*
+
+# Except the actual content we want to keep
+!/projects/06/assembler/**
+!/projects/08/vm-translator/**
+!/projects/11/JackCompiler/**
+!/projects/12/Array.jack
+!/projects/12/Keyboard.jack
+!/projects/12/Math.jack
+!/projects/12/Memory.jack
+!/projects/12/Output.jack
+!/projects/12/Screen.jack
+!/projects/12/String.jack
+!/projects/12/Sys.jack
+
+
+.DS_Store
+__pycache__/
+tools
+*.zip
+*.xml
+*.dSYM
+Noam Nisan*
+projects/06/assembler/target/
