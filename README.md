@@ -237,3 +237,126 @@ Two-pass assembler:
 
 1. Create a dictionary for symbolic variable declarations, where the value points to the corresponding instruction.
 1. Using the dictionary, translate assembly to binary representation. Be cautious with symbolic variables lacking a declaration; they'll refer to a memory point, starting at address 16 and incrementing from there.
+
+
+**Module 1: Virtual Machine I: Stack Arithmetic**
+
+**Two-tier compilation:**
+
+* First, compile the high-level program down to VM code, then compile it to target hardware. This approach allows a program to run on any device, eliminating the need to write a different compiler for every machine. The first process is termed the "front-end", and the subsequent process is the "back-end".
+
+**Popular VM Architecture:** The stack-machine architecture strikes an optimal balance by off-loading the right amount of tasks to both the front-end and the back-end. It offers complete abstraction of its existence concerning the high-level program code, as well as a full abstraction of the machine code from the stack-machine's perspective.
+
+This architecture handles mathematical expressions and logical commands. Unlike other systems, memory segments in the stack-machine don't use symbolic variables. Instead, they reference memory segments by their names and indices.
+
+<div align="center">
+<img src="README/memory-segment.png" alt="memory-segment">
+</div>
+
+Think of the memory registers as places where the machine state is stored. In contrast, the stack serves as the processing unit. Here, arbitrary operations can be executed, and the results are persisted by transferring them to memory.
+
+* **A:** Address register
+* **M:** Memory register selected by A, meaning the Memory register whose address is determined by the current value of A.
+* **A:** Acts as a Pointer
+* **M:** Represents the Value at the pointer.
+
+# Module 2: Virtual Machine II: Program Control
+
+The architecture surrounding the stack and its various memory segments is intriguing. In loop architecture, values are typically "accumulated" through a cycle: they are computed, popped into their memory segment, pushed back onto the stack, and then the process is repeated.
+
+Now, when dealing with two different stacks, one can conceptualize them in terms of frames or localities. For instance, when a function is invoked, distinct caller and callee stacks emerge. The `return` opcode pushes the last element of the callee stack into the caller stack.
+
+<div align="center">
+<img src="README/function-call.png" alt="function-call">
+</div>
+
+**Functions:**
+
+* Each function maintains its unique state, characterized by a working stack and its memory segments.
+* **Function Frame:** Predominantly made up of segment pointers from the caller.
+
+Return steps:
+
+<div align="center">
+<img src="README/function-return.png" alt="function-return">
+</div>
+
+The stack's brilliance becomes evident in the function construct. It seamlessly manages memory and runtime operations while being an elegantly simple data structure.
+
+**Caller:**
+
+* Prior to invoking a function, it's essential to push `n` arguments onto the stack, where `n` represents the number of arguments the function anticipates.
+* Post function execution, the arguments previously pushed to the stack are substituted by the return value. Moreover, all memory segments remain unchanged from their state before the function call, barring the STATIC and TEMP segments for apparent reasons.
+
+**Callee:**
+
+* Arguments are initialized with values passed in by the caller.
+* The segment for local variables is allocated and initialized to zeros.
+* The stack remains vacant.
+
+**Handling Calls:**
+
+**Handle Function Command (symbolic pointer, label):**
+
+* Primarily involves constructing the local segment of the called function. Hence, push 0 onto the stack `nVars` times.
+
+**Handle Return:**
+
+* 
+  It's crucial to discern between code processed by the CLR (Common Language Runtime, which uses two-tiered compilation with a VM step) and code that is executed directly on the hardware platform. While languages like C++ typically run directly, they can also utilize two-tiered compilations. Code processed by the CLR is termed "managed code", whereas the latter is known as "unmanaged code".
+
+When code is executed within a VM environment, one can scrutinize the VM code for potential security threats, a task considerably more challenging with binary code. Additionally, this setup allows for sandboxing mechanisms.
+
+# Module 3: High Level Language
+
+**Syntactic sugar:** The beauty of programming languages lies in the way compilers abstract complexities from the developer. It's like a candy coating for code – easier to consume, but the core remains robust.
+
+**Jack Language:** A fascinating embodiment of the advantages of strongly typed languages. These languages provide a safety net, catching many potential errors at compile time, ensuring greater code integrity. Nonetheless, with great power comes great responsibility. The safety-less construct of Jack does allow for very neat tricks.
+
+# Module 4: Compiler I / Syntax Analysis
+
+<div align="center">
+<img src="README/compiler-roadmap.png" alt="compiler-roadmap">
+</div>
+
+**Lexical Analysis**: Understanding lexical analysis is akin to delving into the semantics of a language. It involves recognizing the "words" of the language. Beginning with the grammar definition, it sets the guidelines for tokenization.
+
+Parsing is the art of ensuring code components adhere to our predefined grammar rules. By components, we're referring to the series of tokens that make up the source.
+
+
+At the foundation of the Jack program lie the lexical elements. They serve as the definitive tokens of the language.
+
+# Module 5: Compiler II / Code Generation
+
+The brilliance of two-tiered compilation becomes evident, especially in the realm of object-oriented languages. The process commences at the class-level and proceeds to the subroutine-level.
+
+A crucial step is the conversion from infix notation to postfix, harmonizing it with the stack-machine paradigm
+
+<div align="center">
+<img src="README/parse-tree.png" alt="parse-tree">
+</div>
+
+<div align="center">
+<img src="README/parse-tree-two.png" alt="parse-tree-two">
+</div>
+
+Objects and arrays find their home in the HEAP. The pointers 'this' and 'that' serve as guides to the base heap address, directing us to object data and array data respectively.
+
+When we talk about compilers, extension isn't straightforward. Introducing concepts like inheritance can introduce static challenges. This journey through compilers sheds light on their recursive beauty, making their construction more intuitive. The nuances of data types become evident; for instance, strings in Jack language have an indefinite stay in the heap due to the absence of garbage collection.
+
+# Module 6: Operating System
+
+The operating system acts as the grand orchestrator, seamlessly bridging high-level languages with the underlying system. It's a vault of services, ranging from memory management and file system operations to I/O device driving and UI orchestration. It’s also a treasure trove of APIs that optimize a plethora of tasks - be it mathematical operations, networking tasks, or security-related processes.
+
+When it comes to efficiency, bit-level operations reign supreme. Operating at this level often results in logarithmic time complexity, especially where loop structures are involved. Plus, such bit-centric operations pave the way for seamless porting of OS algorithms into tangible hardware.
+
+Objects in memory are like treasure maps. While the stack might point to the treasure (data), the actual treasure resides in the heap.
+
+Diving into the heap memory's linked-list structure, two aspects shine:
+
+1. **Memory Allocation:** The quest here is twofold - allocate memory and maintain a vigilant eye on the heap's free memory regions.
+1. **Memory Fragmentation:** Over time, as allocation and deallocation dance their endless waltz, memory undergoes fragmentation. This often beckons the need for a defragmentation process, silently operating in the backdrop for optimal memory utilization.
+
+Vector graphics charm with their scalability. Being rooted in programmatic instructions related to graphics, they can be easily magnified or shrunk without any loss of clarity.
+
+The symphony of the OS components is truly a marvel. Beginning from the memory layer, it builds layer upon layer, crescendoing to the pinnacle of system calls. The harmony achieved is nothing short of poetic.
